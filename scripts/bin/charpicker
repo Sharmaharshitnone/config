@@ -1,0 +1,14 @@
+#!/bin/sh
+EMOJI_FILE="$HOME/work/config/scripts/bin/chars/emoji"
+
+# Select with fzf, exit if empty or cancelled
+chosen=$(fzf < "$EMOJI_FILE" | sed "s/ .*//") || exit
+
+# If argument provided, type it. Else copy to clipboards.
+if [ -n "$1" ]; then
+    xdotool type "$chosen"
+else
+    printf "%s" "$chosen" | xsel -b -i
+    printf "%s" "$chosen" | xsel -p -i
+    notify-send "'$chosen' copied."
+fi
