@@ -51,7 +51,7 @@
     width = (300, 450)
     height = (0, 300)
     origin = top-right
-    offset = (20, 20)
+    offset = (50, 50)
 
     # Shrink window if it's smaller than the width.  Will be ignored if
     # width is 0.
