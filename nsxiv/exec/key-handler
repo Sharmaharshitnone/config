@@ -1,0 +1,210 @@
+#!/bin/sh
+# nsxiv key-handler - Handles key bindings for nsxiv image viewer
+# Usage: Press Ctrl+x in nsxiv, then press a key to trigger actions
+
+# Helper function to check if command is available
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Helper function for setbg (set wallpaper)
+setbg() {
+    if command_exists feh; then
+        feh --bg-scale "$1"
+        notify-send "Wallpaper set" "Set $1 as wallpaper using feh"
+    elif command_exists nitrogen; then
+        nitrogen --set-scaled "$1"
+        notify-send "Wallpaper set" "Set $1 as wallpaper using nitrogen"
+    elif command_exists xwallpaper; then
+        xwallpaper --stretch "$1"
+        notify-send "Wallpaper set" "Set $1 as wallpaper using xwallpaper"
+    else
+        notify-send "Error" "No wallpaper setter found (feh, nitrogen, or xwallpaper needed)"
+    fi
+}
+
+# Helper function to get destination directory
+get_destdir() {
+    action="$1"
+    
+    # Check if bm-dirs exists, otherwise use common directories
+    bm_dirs_file="${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs"
+    
+    if [ -f "$bm_dirs_file" ]; then
+        # Use bookmark directories if available
+        destdir=$(sed "s/#.*$//;/^\s*$/d" "$bm_dirs_file" | awk '{print $2}' | dmenu -l 20 -i -p "$action file(s) to where?" | sed "s|~|$HOME|g")
+    else
+        # Fallback to common directories
+        destdir=$(printf "%s\n" "$HOME/Downloads" "$HOME/Documents" "$HOME/Pictures" "$HOME/Desktop" "/tmp" | dmenu -l 10 -i -p "$action file(s) to where?")
+    fi
+    
+    echo "$destdir"
+}
+
+# Process each file passed to the key-handler
+while read -r file; do
+    case "$1" in
+        "w") 
+            # Set wallpaper
+            setbg "$file" & 
+            ;;
+        "c")
+            # Copy file
+            if [ -z "$destdir" ]; then
+                destdir="$(get_destdir "Copy")"
+            fi
+            
+            if [ ! -d "$destdir" ]; then
+                notify-send "Error" "$destdir is not a directory, cancelled."
+                exit 1
+            fi
+            
+            if cp "$file" "$destdir"; then
+                notify-send -i "$(readlink -f "$file")" "File copied" "$file copied to $destdir."
+            else
+                notify-send "Error" "Failed to copy $file to $destdir"
+            fi &
+            ;;
+        "m")
+            # Move file
+            if [ -z "$destdir" ]; then
+                destdir="$(get_destdir "Move")"
+            fi
+            
+            if [ ! -d "$destdir" ]; then
+                notify-send "Error" "$destdir is not a directory, cancelled."
+                exit 1
+            fi
+            
+            if mv "$file" "$destdir"; then
+                notify-send -i "$(readlink -f "$file")" "File moved" "$file moved to $destdir."
+            else
+                notify-send "Error" "Failed to move $file to $destdir"
+            fi &
+            ;;
+        "r")
+            # Rotate right (90 degrees)
+            if command_exists magick; then
+                magick "$file" -rotate 90 "$file" && notify-send "Rotated" "Rotated $file 90° clockwise"
+            else
+                notify-send "Error" "ImageMagick not found"
+            fi
+            ;;
+        "R")
+            # Rotate left (-90 degrees)
+            if command_exists magick; then
+                magick "$file" -rotate -90 "$file" && notify-send "Rotated" "Rotated $file 90° counter-clockwise"
+            else
+                notify-send "Error" "ImageMagick not found"
+            fi
+            ;;
+        "f")
+            # Flip horizontal
+            if command_exists magick; then
+                magick "$file" -flop "$file" && notify-send "Flipped" "Flipped $file horizontally"
+            else
+                notify-send "Error" "ImageMagick not found"
+            fi
+            ;;
+        "y")
+            # Copy filename to clipboard
+            if command_exists xclip; then
+                printf "%s" "$file" | tr -d '\n' | xclip -selection clipboard && notify-send "Copied" "$file copied to clipboard"
+            elif command_exists wl-copy; then
+                printf "%s" "$file" | tr -d '\n' | wl-copy && notify-send "Copied" "$file copied to clipboard"
+            else
+                notify-send "Error" "No clipboard tool found (xclip or wl-copy needed)"
+            fi &
+            ;;
+        "Y")
+            # Copy full path to clipboard
+            full_path="$(readlink -f "$file")"
+            if command_exists xclip; then
+                printf "%s" "$full_path" | tr -d '\n' | xclip -selection clipboard && notify-send "Copied" "$full_path copied to clipboard"
+            elif command_exists wl-copy; then
+                printf "%s" "$full_path" | tr -d '\n' | wl-copy && notify-send "Copied" "$full_path copied to clipboard"
+            else
+                notify-send "Error" "No clipboard tool found (xclip or wl-copy needed)"
+            fi &
+            ;;
+        "d")
+            # Delete file with confirmation
+            if [ "$(printf "No\\nYes" | dmenu -i -p "Really delete $file?")" = "Yes" ]; then
+                if rm "$file"; then
+                    notify-send "Deleted" "$file deleted"
+                else
+                    notify-send "Error" "Failed to delete $file"
+                fi
+            fi
+            ;;
+        "g")
+            # Open in GIMP
+            if command_exists gimp; then
+                setsid -f gimp "$file" && notify-send "Opening" "Opening $file in GIMP"
+            else
+                notify-send "Error" "GIMP not found"
+            fi
+            ;;
+        "i")
+            # Show file information
+            if command_exists mediainfo; then
+                info=$(mediainfo "$file" | sed "s/[ ]\+:/:/g;s/: /: <b>/;s/$/<\/b>/" | grep "<b>")
+                notify-send "File information" "$info"
+            elif command_exists exiftool; then
+                info=$(exiftool "$file" | head -10)
+                notify-send "File information" "$info"
+            else
+                # Basic file info using stat and file
+                size=$(stat -c%s "$file" 2>/dev/null || echo "unknown")
+                type=$(file -b "$file" 2>/dev/null || echo "unknown")
+                notify-send "File information" "Size: $size bytes\nType: $type"
+            fi
+            ;;
+        "o")
+            # Open with default application
+            if command_exists xdg-open; then
+                xdg-open "$file" &
+            elif command_exists open; then
+                open "$file" &
+            else
+                notify-send "Error" "No default opener found"
+            fi
+            ;;
+	"C")
+            # Copy IMAGE DATA to clipboard (Shift+c)
+            if command_exists xclip; then
+                # X11: Copy image to clipboard with proper targets
+                # Use -i flag explicitly and let xclip handle the file
+                xclip -selection clipboard -t image/png -i "$file" 2>/dev/null || \
+                xclip -selection clipboard -t image/jpeg -i "$file" 2>/dev/null || \
+                xclip -selection clipboard -t image/jpg -i "$file" 2>/dev/null
+                notify-send "Copied Image" "Image copied to clipboard"
+                
+            elif command_exists wl-copy; then
+                # Wayland: wl-copy auto-detects mime type
+                wl-copy < "$file"
+                notify-send "Copied Image" "Image copied to clipboard"
+                
+            else
+                notify-send "Error" "Install xclip (X11) or wl-copy (Wayland)"
+            fi &
+            ;;
+        *)
+            # Show help for unknown keys
+            notify-send "nsxiv key-handler" "Available keys:
+w - set wallpaper
+c - copy file
+C - copy to clipboaard
+m - move file  
+r - rotate right
+R - rotate left
+f - flip horizontal
+y - copy filename
+Y - copy full path
+d - delete file
+g - open in GIMP
+i - file information
+o - open with default app"
+            ;;
+    esac
+done

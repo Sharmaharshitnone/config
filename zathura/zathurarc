@@ -1,0 +1,60 @@
+set sandbox none
+set statusbar-h-padding 0
+set statusbar-v-padding 0
+set page-padding 1
+set selection-clipboard clipboard
+map u scroll half-up
+map d scroll half-down
+map D toggle_page_mode
+map r reload
+map R rotate
+map K zoom in
+map J zoom out
+map i recolor
+map p print
+map g goto top
+map [fullscreen] u scroll half-up
+map [fullscreen] d scroll half-down
+map [fullscreen] D toggle_page_mode
+map [fullscreen] r reload
+map [fullscreen] R rotate
+map [fullscreen] K zoom in
+map [fullscreen] J zoom out
+map [fullscreen] i recolor
+map [fullscreen] p print
+map [fullscreen] g goto top
+
+# --- Core UX Settings ---
+set guioptions ""                # Remove scrollbars and UI chrome for pure reading
+set adjust-open "width"          # Open documents fitted to width
+set render-loading false         # Disable "Loading..." text for cleaner transitions
+set scroll-step 40               # Smoother scrolling experience
+
+# --- Gruvbox Dark (Recolor Mode) ---
+# Toggled via 'i'. Optimized for long reading sessions.
+set recolor-lightcolor "#282828" # Background (Gruvbox Dark Hard)
+set recolor-darkcolor  "#ebdbb2" # Foreground (Gruvbox Light 1)
+set recolor-keep-true-color true # Keep images/graphs in original colors (essential for textbooks)
+
+# --- UI Colors (Gruvbox Integration) ---
+set default-bg                  "#282828"
+set default-fg                  "#ebdbb2"
+
+set statusbar-bg                "#282828"
+set statusbar-fg                "#ebdbb2"
+
+set inputbar-bg                 "#282828"
+set inputbar-fg                 "#ebdbb2"
+
+set notification-error-bg       "#cc241d" # Gruvbox Red
+set notification-error-fg       "#ebdbb2"
+set notification-warning-bg     "#d79921" # Gruvbox Yellow
+set notification-warning-fg     "#282828"
+
+set highlight-color             "rgba(215, 153, 33, 0.5)" # Gruvbox Yellow (Selection)
+set highlight-active-color      "rgba(250, 189, 47, 0.5)" # Gruvbox Bright Yellow
+
+set completion-bg               "#3c3836"
+set completion-fg               "#ebdbb2"
+set completion-highlight-bg     "#504945"
+set completion-highlight-fg     "#ebdbb2"

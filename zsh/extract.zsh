@@ -1,0 +1,56 @@
+# NOTE: Extract the archieve
+# -----------------------------------------------------------------------------
+# Function: extract
+# Description: Extracts any archive file passed as an argument.
+# Usage: extract <file>
+# Dependencies: tar, unzip, p7zip
+# -----------------------------------------------------------------------------
+extract() {
+    # Ensure an argument is provided.
+    if [[ -z "$1" ]]; then
+        echo "Error: No file specified." >&2
+        echo "Usage: extract <file>" >&2
+        return 1
+    fi
+
+    # Ensure the file exists.
+    if [[ ! -f "$1" ]]; then
+        echo "Error: File not found: '$1'" >&2
+        return 1
+    fi
+
+    # Make matching case-insensitive and local to the function.
+    emulate -L zsh
+    setopt local_options nomultifuncs nocasematch
+
+    local filename="$1"
+    local exit_code=0
+
+    # Determine the extraction command based on the file extension.
+    case "$filename" in
+        (*.tar.gz|*.tgz)   tar -xzvf "$filename" ;;
+        (*.tar.bz2|*.tbz2) tar -xjvf "$filename" ;;
+        (*.tar.xz|*.txz)   tar -xJvf "$filename" ;;
+        (*.tar)           tar -xvf "$filename"  ;;
+        (*.zip|*.jar)     unzip "$filename"     ;;
+        (*.7z)            7z x "$filename"      ;;
+        (*.rar)           7z x "$filename"      ;; # Use 7z from p7zip for .rar
+        (*.gz)            gunzip "$filename"    ;;
+        (*.bz2)           bunzip2 "$filename"   ;;
+        (*.xz)            unxz "$filename"      ;;
+        (*)
+            echo "Error: Don't know how to extract '$filename'" >&2
+            return 2 # Different error code for unknown type
+            ;;
+    esac
+
+    exit_code=$? # Capture the exit code of the extraction command.
+    if [[ $exit_code -eq 0 ]]; then
+        echo "✅ Successfully extracted '$filename'"
+    else
+        echo "❌ Extraction failed for '$filename' with exit code $exit_code." >&2
+    fi
+
+    return $exit_code
+}
+

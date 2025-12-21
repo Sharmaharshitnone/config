@@ -1,0 +1,127 @@
+icons_format = " {icon} "
+
+[theme]
+# theme = "ctp-mocha"
+theme = "gruvbox-dark"
+overrides = { idle_bg = "none", idle_fg = "#ebdbb2", separator = " ", separator_bg = "none", separator_fg = "none" } 
+
+[icons]
+icons = "awesome6"
+
+
+# 11. TIME
+[[block]]
+block = "time"
+interval = 60
+format = " $timestamp.datetime(f:'%I:%M %p')"
+[block.theme_overrides]
+idle_fg = "#ebdbb2"
+
+# # 0. FOCUSED WINDOW
+# [[block]]
+# block = "focused_window"
+# format = " $title.str(max_w:60) | None "
+# [block.theme_overrides]
+
+
+# 2. DOCKER (Smart)
+# [[block]]
+# block = "custom"
+# command = "if systemctl is-active --quiet docker; then echo \" $(docker ps -q | wc -l)\"; else echo \" zzz\"; fi"
+# interval = 10
+# [block.theme_overrides]
+# [[block.click]]
+# button = "left"
+# cmd = "systemctl start docker"
+
+# 3. CPU
+[[block]]
+block = "cpu"
+interval = 1
+format = "  $utilization $frequency "
+[block.theme_overrides]
+idle_fg = "#fab387"
+[[block.click]]
+button = "left"
+cmd = "alacritty -e htop"
+
+# 4. TEMPERATURE (i7-13620H)
+[[block]]
+block = "temperature"
+format = "  $average "
+interval = 5
+chip = "coretemp-isa-*"
+[block.theme_overrides]
+idle_fg = "#eba0ac"
+
+# 5. MEMORY
+[[block]]
+block = "memory"
+format = "  $mem_used_percents "
+format_alt = "  $mem_used / $mem_total "
+interval = 5
+warning_mem = 80
+critical_mem = 95
+[block.theme_overrides]
+idle_fg = "#f9e2af"
+
+# 6. BATTERY
+[[block]]
+block = "battery"
+format = " $icon $percentage "
+missing_format = ""
+interval = 5
+[block.theme_overrides]
+idle_fg = "#a6e3a1"
+
+# 7. VOLUME
+[[block]]
+block = "sound"
+format = " $icon $volume "
+[block.theme_overrides]
+idle_fg = "#f5c2e7"
+[[block.click]]
+button = "left"
+cmd = "pavucontrol"
+
+# 8. MIC
+[[block]]
+block = "sound"
+device_kind = "source"
+format = "  $volume "
+[block.theme_overrides]
+idle_fg = "#cba6f7"
+[[block.click]]
+button = "left"
+cmd = "pavucontrol"
+
+
+# 8. MIC
+[[block]]
+block = "custom"
+format = "󰸉 "
+command = "echo'󰸉 '"
+[block.theme_overrides]
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/bg.sh"
+
+# 5b. BACKLIGHT (Brightness)
+[[block]]
+block = "backlight"
+format = "  $brightness "
+missing_format = ""
+[block.theme_overrides]
+idle_fg = "#f9e2af"
+
+# # 10. WARP (Cloudflare)
+# [[block]]
+# block = "custom"
+# command = "if systemctl is-active --quiet warp-svc && warp-cli status 2>/dev/null | grep -q Connected; then echo '   ON '; else echo '   OFF '; fi"
+# interval = 5
+# [block.theme_overrides]
+# idle_fg = "#94e2d5"
+# [[block.click]]
+# button = "left"
+# cmd = "/home/kali/.local/bin/warp-toggle"
+

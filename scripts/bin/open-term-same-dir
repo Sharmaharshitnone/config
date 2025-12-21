@@ -1,0 +1,49 @@
+#!/bin/bash
+# open-term-same-dir - Opens kitty terminal in the same directory as the currently focused window
+
+# Get the focused window's PID using xdotool
+focused_window=$(xdotool getwindowfocus)
+focused_pid=$(xdotool getwindowpid "$focused_window" 2>/dev/null)
+
+# Function to find the working directory of a process
+get_pwd_of_process() {
+    local pid=$1
+    local cwd
+    
+    # Get all descendant processes (shells, programs running in terminal, etc.)
+    # Use pstree to get the full process tree
+    local all_pids=$(pstree -p "$pid" 2>/dev/null | grep -oP '\(\K[0-9]+')
+    
+    # Try each process, skipping HOME directory (terminal emulators default to HOME)
+    for proc_pid in $all_pids; do
+        cwd=$(readlink "/proc/$proc_pid/cwd" 2>/dev/null)
+        # Return first non-HOME directory we find
+        if [[ -d "$cwd" && "$cwd" != "$HOME" ]]; then
+            echo "$cwd"
+            return 0
+        fi
+    done
+    
+    # If all processes are in HOME, just return HOME
+    # (Check main PID again as fallback)
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null)
+    if [[ -d "$cwd" ]]; then
+        echo "$cwd"
+        return 0
+    fi
+    
+    return 1
+}
+
+# Get the working directory
+if [[ -n "$focused_pid" ]]; then
+    target_dir=$(get_pwd_of_process "$focused_pid")
+fi
+
+# Fallback to home directory if we couldn't determine the directory
+if [[ -z "$target_dir" || ! -d "$target_dir" ]]; then
+    target_dir="$HOME"
+fi
+
+# Launch kitty in the target directory
+exec kitty --directory="$target_dir"

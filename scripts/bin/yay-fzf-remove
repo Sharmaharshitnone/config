@@ -1,0 +1,33 @@
+#!/bin/bash
+# yay-fzf-remove - Interactive package removal with fzf
+
+fzf_args=(
+  --multi
+  --preview 'yay -Qi {1}'
+  --preview-label='alt-p: toggle preview | alt-j/k: scroll | tab: multi-select'
+  --preview-label-pos='bottom'
+  --preview-window 'down:65%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --bind 'alt-k:preview-up,alt-j:preview-down'
+  --color 'pointer:red,marker:red'
+  --prompt='Select packages to REMOVE > '
+  --header='Press TAB to select multiple | ENTER to remove | ESC to cancel'
+)
+
+pkg_names=$(yay -Qqe | fzf "${fzf_args[@]}")
+
+if [[ -n "$pkg_names" ]]; then
+  echo -e "\n⚠️  The following packages will be REMOVED along with dependencies:\n"
+  echo "$pkg_names" | tr '\n' ' '
+  echo -e "\n\nContinue? (y/N): "
+  read -r confirm
+  
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    echo "$pkg_names" | tr '\n' ' ' | xargs sudo pacman -Rns
+    echo -e "\n✓ Removal complete. Press ENTER to exit..."
+    read
+  else
+    echo "Cancelled."
+  fi
+fi

@@ -1,0 +1,41 @@
+shell = "zsh"
+
+# 1. Define the Defer Template
+[templates]
+defer = "{% for file in files %}zsh-defer source \"{{ file }}\"\n{% endfor %}"
+
+# 2. Load Defer (MUST BE FIRST)
+[plugins.zsh-defer]
+github = "romkatv/zsh-defer"
+
+# 3. P10k (Immediate)
+[plugins.powerlevel10k]
+github = "romkatv/powerlevel10k"
+
+# 4. Autosuggestions (DEFER)
+[plugins.zsh-autosuggestions]
+github = "zsh-users/zsh-autosuggestions"
+apply = ["defer"]
+
+# 5. Syntax Highlighting (DEFER - LAST)
+[plugins.zsh-syntax-highlighting]
+github = "zsh-users/zsh-syntax-highlighting"
+apply = ["defer"]
+
+# 6. FZF Tab (Optional - Defer it too if you want)
+[plugins.fzf-tab]
+github = "Aloxaf/fzf-tab"
+apply = ["defer"]
+
+# 7. OMZ Plugins (Optimized Raw Loading)
+[plugins.omz-git]
+remote = "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/plugins/git/git.plugin.zsh"
+apply = ["defer"]
+
+[plugins.omz-docker]
+remote = "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/plugins/docker/docker.plugin.zsh"
+apply = ["defer"]
+
+[plugins.omz-conda]
+remote = "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/plugins/conda/conda.plugin.zsh"
+apply = ["defer"]

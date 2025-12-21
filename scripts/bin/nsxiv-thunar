@@ -1,0 +1,32 @@
+#!/bin/bash
+# nsxiv-thunar: Opens the folder of the clicked file, focused on that file.
+
+# 1. Get absolute path and details
+TARGET_FILE=$(realpath "$1")
+DIR=$(dirname "$TARGET_FILE")
+FILENAME=$(basename "$TARGET_FILE")
+
+# 2. Build sorted list of image files (matching nsxiv's behavior)
+# nsxiv sorts alphabetically, so we use simple ls with LC_ALL=C for consistent sorting
+mapfile -t images < <(
+    cd "$DIR" && \
+    /usr/bin/find . -maxdepth 1 -type f \( \
+        -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o \
+        -iname "*.gif" -o -iname "*.webp" -o -iname "*.tiff" -o \
+        -iname "*.tif" -o -iname "*.bmp" -o -iname "*.ico" -o \
+        -iname "*.svg" \) -printf '%f\n' | LC_ALL=C sort
+)
+
+# 3. Find the index of our target file (1-indexed)
+COUNT=1
+for i in "${!images[@]}"; do
+    if [[ "${images[$i]}" == "$FILENAME" ]]; then
+        COUNT=$((i + 1))
+        break
+    fi
+done
+
+# 4. Launch nsxiv
+# -t: Thumbnail mode
+# -n: Start at index number $COUNT
+exec nsxiv -t -n "$COUNT" "$DIR"
