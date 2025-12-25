@@ -3,7 +3,7 @@ icons_format = " {icon} "
 [theme]
 # theme = "ctp-mocha"
 theme = "gruvbox-dark"
-overrides = { idle_bg = "none", idle_fg = "#ebdbb2", separator = " ", separator_bg = "none", separator_fg = "none" } 
+overrides = { idle_bg = "none", idle_fg = "#ebdbb2", separator = "  ", separator_bg = "none", separator_fg = "none" } 
 
 [icons]
 icons = "awesome6"
@@ -13,9 +13,8 @@ icons = "awesome6"
 [[block]]
 block = "time"
 interval = 60
-format = " $timestamp.datetime(f:'%I:%M %p')"
+format = "TIME: $timestamp.datetime(f:'%I:%M %p')"
 [block.theme_overrides]
-idle_fg = "#ebdbb2"
 
 # # 0. FOCUSED WINDOW
 # [[block]]
@@ -38,9 +37,8 @@ idle_fg = "#ebdbb2"
 [[block]]
 block = "cpu"
 interval = 1
-format = "  $utilization $frequency "
+format = "CPU:$utilization $frequency"
 [block.theme_overrides]
-idle_fg = "#fab387"
 [[block.click]]
 button = "left"
 cmd = "alacritty -e htop"
@@ -48,38 +46,27 @@ cmd = "alacritty -e htop"
 # 4. TEMPERATURE (i7-13620H)
 [[block]]
 block = "temperature"
-format = "  $average "
+format = "TEMP:$average"
 interval = 5
 chip = "coretemp-isa-*"
 [block.theme_overrides]
-idle_fg = "#eba0ac"
 
 # 5. MEMORY
 [[block]]
 block = "memory"
-format = "  $mem_used_percents "
-format_alt = "  $mem_used / $mem_total "
+format = "RAM:$mem_used_percents"
+format_alt = "RAM:$mem_used / $mem_total "
 interval = 5
 warning_mem = 80
 critical_mem = 95
 [block.theme_overrides]
-idle_fg = "#f9e2af"
 
-# 6. BATTERY
-[[block]]
-block = "battery"
-format = " $icon $percentage "
-missing_format = ""
-interval = 5
-[block.theme_overrides]
-idle_fg = "#a6e3a1"
 
 # 7. VOLUME
 [[block]]
 block = "sound"
-format = " $icon $volume "
+format = "VOL:$volume"
 [block.theme_overrides]
-idle_fg = "#f5c2e7"
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
@@ -88,9 +75,8 @@ cmd = "pavucontrol"
 [[block]]
 block = "sound"
 device_kind = "source"
-format = "  $volume "
+format = "MIC:$volume"
 [block.theme_overrides]
-idle_fg = "#cba6f7"
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
@@ -99,8 +85,8 @@ cmd = "pavucontrol"
 # 8. MIC
 [[block]]
 block = "custom"
-format = "󰸉 "
-command = "echo'󰸉 '"
+format = "BG"
+command = "echo'BG'"
 [block.theme_overrides]
 [[block.click]]
 button = "left"
@@ -109,19 +95,13 @@ cmd = "~/.config/i3/scripts/bg.sh"
 # 5b. BACKLIGHT (Brightness)
 [[block]]
 block = "backlight"
-format = "  $brightness "
+format = "GAMMA:$brightness"
 missing_format = ""
 [block.theme_overrides]
-idle_fg = "#f9e2af"
 
-# # 10. WARP (Cloudflare)
-# [[block]]
-# block = "custom"
-# command = "if systemctl is-active --quiet warp-svc && warp-cli status 2>/dev/null | grep -q Connected; then echo '   ON '; else echo '   OFF '; fi"
-# interval = 5
-# [block.theme_overrides]
-# idle_fg = "#94e2d5"
-# [[block.click]]
-# button = "left"
-# cmd = "/home/kali/.local/bin/warp-toggle"
-
+# 6. BATTERY
+[[block]]
+block = "battery"
+format = " BAT:$percentage "
+missing_format = ""
+interval = 5

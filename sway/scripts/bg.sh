@@ -1,26 +1,37 @@
 #!/bin/bash
+# Sway Wallpaper Setter
+# This script sets a random wallpaper exactly ONCE per execution.
 
-# Simple wallpaper setter for i3
+# Safe exit on error
+set -euo pipefail
+
+# Configuration
 WALLPAPER_DIR="$HOME/Pictures/wallpapers"
 
-# Find a random wallpaper
-wallpaper=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" \) | shuf -n 1)
 
-if [ -n "$wallpaper" ]; then
-    # Set wallpaper with xwallpaper
-    swaybg -i "$wallpaper" &
-    # Update the symlink for compatibility
-    ln -sf "$wallpaper" "$WALLPAPER_DIR/w3.jpg"
+# 2. Wait for Sway IPC readiness (max 5 seconds)
+for i in {1..25}; do
+    swaymsg -t get_outputs >/dev/null 2>&1 && break
+    sleep 0.2
+done
 
-    # Optional: Run pywal if available (but don't fail if it errors)
-    if command -v wal >/dev/null 2>&1; then
-        # wal -n -i "$wallpaper" -o "$HOME/.config/wal/postrun" >/dev/null 2>&1 || true
-        # Run wal in a subshell and send it to the background
-(wal -n -i "$wallpaper" -o ~/.config/sway/pywal.conf &)
-    fi
+# 4. Select Random Wallpaper
+# We use 'shuf -n 1' to pick exactly one file.
+WALLPAPER=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" \) | shuf -n 1)
 
-    # Send notification
-    if command -v notify-send >/dev/null 2>&1; then
-        notify-send -i "$wallpaper" "Wallpaper set: $(basename "$wallpaper")" || true
-    fi
-fi
+
+# 5. Set Wallpaper via swaymsg
+# Sway doesn't support wildcard "*" for bg command - must enumerate outputs
+for output in $(swaymsg -t get_outputs | jq -r '.[].name'); do
+    swaymsg output "$output" bg "$WALLPAPER" fill
+done
+
+# 6. Persistence (Optional)
+# Symlink for lockscreens or other tools
+ln -sf "$WALLPAPER" "$WALLPAPER_DIR/current_wallpaper.jpg"
+
+
+# 8. Notify
+# notify-send "Wallpaper Set" "$(basename "$WALLPAPER")"
+
+exit 0

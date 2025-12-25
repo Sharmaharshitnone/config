@@ -1,0 +1,77 @@
+# Mako Notification Daemon Config
+# Port from dunst configuration
+
+# Font
+font=JetBrainsMono Nerd Font 11
+
+# Format
+format=<b>%s</b>\n%b
+markup=1
+
+# Geometry (matching dunst: width 300-450, height 0-300)
+width=400
+height=300
+margin=50
+padding=12
+border-size=2
+border-radius=10
+
+# Position (matching dunst: top-right with 50,50 offset)
+anchor=top-right
+layer=overlay
+
+# Sorting
+sort=-time
+
+# Grouping
+group-by=app-name
+
+# Icon settings (Papirus-Dark theme)
+icons=1
+max-icon-size=64
+icon-path=/usr/share/icons/Papirus-Dark
+
+# Default style (urgency=normal)
+# Catppuccin Mocha background
+background-color=#1e1e2edd
+# Catppuccin Text color
+text-color=#cdd6f4
+# Gruvbox Red (Bright) accent - matching dunst
+border-color=#fb4934
+progress-color=over #fb4934
+
+# Default timeout (10s like dunst)
+default-timeout=10000
+
+# Interaction
+# Left-click: invoke default action (focus originating window)
+# Middle-click: invoke action and dismiss
+# Right-click: dismiss all notifications
+on-button-left=invoke-default-action
+on-button-middle=exec makoctl invoke && makoctl dismiss
+on-button-right=dismiss-all
+
+# Actions behavior
+actions=1
+
+# Urgency: low
+[urgency=low]
+background-color=#1e1e2e
+text-color=#cdd6f4
+border-color=#fb4934
+default-timeout=5000
+
+# Urgency: critical
+[urgency=critical]
+background-color=#cc241d
+text-color=#ebdbb2
+border-color=#fb4934
+default-timeout=0
+ignore-timeout=1
+
+# App-specific rules (optional)
+[app-name="Spotify"]
+border-color=#1db954
+
+[app-name="Discord"]
+border-color=#5865f2

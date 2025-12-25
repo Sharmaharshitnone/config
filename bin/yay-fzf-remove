@@ -1,8 +1,28 @@
 #!/bin/bash
 # yay-fzf-remove - Interactive package removal with fzf
 
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# Check Dependencies
+if ! command -v yay >/dev/null 2>&1; then
+    echo -e "${RED}${BOLD}Error:${RESET} yay is required but not installed."
+    exit 1
+fi
+
+if ! command -v fzf >/dev/null 2>&1; then
+    echo -e "${RED}${BOLD}Error:${RESET} fzf is required but not installed."
+    exit 1
+fi
+
 fzf_args=(
   --multi
+  # -Qi: Query info
   --preview 'yay -Qi {1}'
   --preview-label='alt-p: toggle preview | alt-j/k: scroll | tab: multi-select'
   --preview-label-pos='bottom'
@@ -10,24 +30,30 @@ fzf_args=(
   --bind 'alt-p:toggle-preview'
   --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
   --bind 'alt-k:preview-up,alt-j:preview-down'
-  --color 'pointer:red,marker:red'
+  --color 'fg+:red,bg+:black,hl:yellow,pointer:red,marker:red,header:red'
   --prompt='Select packages to REMOVE > '
-  --header='Press TAB to select multiple | ENTER to remove | ESC to cancel'
+  --header='TAB: select multiple | ENTER: remove | ESC: cancel'
 )
 
+# Load installed list
+# -Qqe: Query, quiet, explicit (only things you installed yourself)
+echo -e "${BLUE}${BOLD}::${RESET} Loading installed packages..."
 pkg_names=$(yay -Qqe | fzf "${fzf_args[@]}")
 
 if [[ -n "$pkg_names" ]]; then
-  echo -e "\n⚠️  The following packages will be REMOVED along with dependencies:\n"
-  echo "$pkg_names" | tr '\n' ' '
-  echo -e "\n\nContinue? (y/N): "
-  read -r confirm
+  mapfile -t pkg_array <<< "$pkg_names"
   
-  if [[ "$confirm" =~ ^[Yy]$ ]]; then
-    echo "$pkg_names" | tr '\n' ' ' | xargs sudo pacman -Rns
-    echo -e "\n✓ Removal complete. Press ENTER to exit..."
-    read
+  echo -e "\n${BLUE}${BOLD}::${RESET} Preparing to remove ${RED}${BOLD}${pkg_array[*]}${RESET}..."
+  
+  # Run yay directly
+  # -Rns: Remove, recursive (dependencies), cascade (files)
+  # pacman/yay will create the "Proceed? [Y/n]" prompt for us.
+  if yay -Rns "${pkg_array[@]}"; then
+      echo -e "\n${GREEN}${BOLD}✓ Removal complete.${RESET}"
   else
-    echo "Cancelled."
+      echo -e "\n${RED}${BOLD}✗ Removal failed or cancelled.${RESET}"
   fi
+  
+  echo -e "\n${BLUE}Press any key to exit...${RESET}"
+  read -n 1 -s -r
 fi
