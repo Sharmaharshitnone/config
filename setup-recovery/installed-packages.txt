@@ -7,8 +7,6 @@ android-tools
 android-udev
 antigravity-bin
 auto-cpufreq
-aws-cli-bin
-aws-sam-cli-bin
 base
 base-devel
 bat

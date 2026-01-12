@@ -3,7 +3,7 @@
 # This installs only packages you chose, not auto-dependencies
 # Dependencies are resolved automatically by pacman/yay
 
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -29,18 +29,28 @@ log_info "Total packages to install: $TOTAL_PKGS"
 
 # Sync package database first
 log_info "Syncing package database..."
-sudo pacman -Sy 2>&1 | grep -v "downloading" || true
+if ! sudo pacman -Sy &>/dev/null; then
+    log_warn "Pacman sync failed (continuing anyway)"
+fi
 
 # Install all packages (pacman will install from repos, yay will handle AUR)
 log_info "Installing packages via pacman and yay..."
 log_warn "Note: Invalid/missing packages will be skipped by pacman/yay"
 
 # Try to install with pacman first (will catch official repos)
-xargs -r sudo pacman -S --needed --noconfirm < "$PACKAGES_FILE" 2>&1 || log_warn "Pacman install finished (some packages may have failed)"
+if xargs -r sudo pacman -S --needed --noconfirm < "$PACKAGES_FILE" 2>&1; then
+    log_info "✓ Pacman packages installed"
+else
+    log_warn "Some pacman packages failed (continuing with yay)"
+fi
 
 # Then try yay for AUR packages (will skip what's already installed)
 log_info "Installing AUR packages with yay..."
-xargs -r yay -S --needed --noconfirm < "$PACKAGES_FILE" 2>&1 || log_warn "Yay install finished (some packages may have failed)"
+if xargs -r yay -S --needed --noconfirm < "$PACKAGES_FILE" 2>&1; then
+    log_info "✓ Yay packages installed"
+else
+    log_warn "Some yay packages failed (this is normal for non-AUR packages)"
+fi
 
 log_info "✓ Installation complete!"
 log_info "Future updates: pacman -Syu && yay -Syu"
