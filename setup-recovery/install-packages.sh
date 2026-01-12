@@ -14,7 +14,6 @@ NC='\033[0m'
 log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-log_debug() { echo -e "${BLUE}[DEBUG]${NC} $1"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGES_FILE="${SCRIPT_DIR}/installed-packages.txt"
@@ -24,56 +23,24 @@ if [[ ! -f "$PACKAGES_FILE" ]]; then
     exit 1
 fi
 
-log_info "System Recovery Mode - EXPLICIT PACKAGES ONLY"
+log_info "System Recovery Mode - Installing Arch Linux packages"
 TOTAL_PKGS=$(wc -l < "$PACKAGES_FILE")
-log_info "Total explicit packages to install: $TOTAL_PKGS"
-log_debug "Dependencies will be auto-resolved by pacman/yay"
-log_info "(vs 1429 total with auto-dependencies)"
+log_info "Total packages to install: $TOTAL_PKGS"
 
-# Create temp files for native and AUR packages
-NATIVE_PKGS=$(mktemp)
-AUR_PKGS=$(mktemp)
+# Sync package database first
+log_info "Syncing package database..."
+sudo pacman -Sy 2>&1 | grep -v "downloading" || true
 
-trap "rm -f $NATIVE_PKGS $AUR_PKGS" EXIT
+# Install all packages (pacman will install from repos, yay will handle AUR)
+log_info "Installing packages via pacman and yay..."
+log_warn "Note: Invalid/missing packages will be skipped by pacman/yay"
 
-log_info "Separating native and AUR packages..."
-NATIVE_COUNT=0
-AUR_COUNT=0
+# Try to install with pacman first (will catch official repos)
+xargs -r sudo pacman -S --needed --noconfirm < "$PACKAGES_FILE" 2>&1 || log_warn "Pacman install finished (some packages may have failed)"
 
-while read -r pkg_name; do
-    [[ -z "$pkg_name" ]] && continue
-    
-    # Check if package is in official repos (native)
-    if pacman -Si "$pkg_name" &>/dev/null 2>&1; then
-        echo "$pkg_name" >> "$NATIVE_PKGS"
-        ((NATIVE_COUNT++))
-    else
-        echo "$pkg_name" >> "$AUR_PKGS"
-        ((AUR_COUNT++))
-    fi
-done < "$PACKAGES_FILE"
-
-log_info "Found: $NATIVE_COUNT native packages, $AUR_COUNT AUR packages"
-
-# Install native packages
-if [[ $NATIVE_COUNT -gt 0 ]]; then
-    log_info "Installing native packages (pacman resolves dependencies)..."
-    if cat "$NATIVE_PKGS" | xargs sudo pacman -S --needed 2>&1; then
-        log_info "✓ Native packages installed"
-    else
-        log_warn "Some native packages failed to install"
-    fi
-fi
-
-# Install AUR packages with yay
-if [[ $AUR_COUNT -gt 0 ]]; then
-    log_info "Installing AUR packages with yay (yay resolves dependencies)..."
-    if cat "$AUR_PKGS" | xargs yay -S --needed 2>&1; then
-        log_info "✓ AUR packages installed"
-    else
-        log_warn "Some AUR packages failed to install"
-    fi
-fi
+# Then try yay for AUR packages (will skip what's already installed)
+log_info "Installing AUR packages with yay..."
+xargs -r yay -S --needed --noconfirm < "$PACKAGES_FILE" 2>&1 || log_warn "Yay install finished (some packages may have failed)"
 
 log_info "✓ Installation complete!"
 log_info "Future updates: pacman -Syu && yay -Syu"
