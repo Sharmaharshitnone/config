@@ -6,12 +6,12 @@ alias ls='eza --icons --group-directories-first'
 alias la="ll -a"
 # alias lt='eza -T --icons --group-directories-first'
 alias lt="eza --tree --level=2 --icons --group-directories-first"
-alias cat='bat --style=plain'
 alias ll="eza -l --icons --group-directories-first --git --header --total-size --smart-group"
-alias grep='rg'
+# alias grep='rg'
 alias cp='cp -i'
 alias mv='mv -i'
 alias rm='rm -I'
+alias e='nvim'
 
 # --- 2. NAVIGATION ---
 alias ..='cd ..'
@@ -37,7 +37,7 @@ alias cl='cargo clippy'
 alias cx='cargo run --example'
 
 # --- 5. CP WORKFLOW ---
-function cpp_run() {
+function cpprun() {
     g++ -O3 -std=c++23 -Wall -Wextra -DLOCAL "$1" -o "${1%.*}" && ./"${1%.*}"
 }
 function cpp_debug() {

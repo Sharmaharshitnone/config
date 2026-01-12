@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+
+# Check if dependencies are available
+if ! command -v xdg-open >/dev/null 2>&1; then
+    notify-send -a "rmpc" "Error" "xdg-open not found"
+    exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+    notify-send -a "rmpc" "Error" "jq not found"
+    exit 1
+fi
+
+song=$(rmpc song --path "$SELECTED_SONGS" 2>/dev/null | head -n 1)
+if [ -z "$song" ]; then
+    notify-send -a "rmpc" "Error" "No song selected"
+    exit 1
+fi
+
+artist=$(echo "$song" | jq -r '.metadata.artist // "Unknown"' 2>/dev/null)
+title=$(echo "$song" | jq -r '.metadata.title // "Unknown"' 2>/dev/null)
+
+if [ "$artist" = "Unknown" ] && [ "$title" = "Unknown" ]; then
+    notify-send -a "rmpc" "Error" "Could not parse song metadata"
+    exit 1
+fi
+
+query=$(printf '%s %%20 %s' "$artist" "$title" | jq -sRr @uri)
+xdg-open "https://www.youtube.com/results?search_query=$query" 2>/dev/null &

@@ -9,11 +9,16 @@ read -r first_action
 
 # Focus the app in i3
 if [ -n "$DUNST_APP_NAME" ]; then
-    # Log for debugging
+    # Log with rotation (keep last 100 lines)
     log_file="/tmp/dunst_click.log"
     echo "--- $(date) ---" >> "$log_file"
     echo "App: $DUNST_APP_NAME" >> "$log_file"
     echo "Summary: $DUNST_SUMMARY" >> "$log_file"
+    
+    # Rotate log if > 200 lines (keep last 100)
+    if [ -f "$log_file" ] && [ $(wc -l < "$log_file") -gt 200 ]; then
+        tail -n 100 "$log_file" > "${log_file}.tmp" && mv "${log_file}.tmp" "$log_file"
+    fi
 
     # Convert to lowercase for class matching (e.g. Firefox -> firefox)
     app_lower="${DUNST_APP_NAME,,}"

@@ -3,20 +3,20 @@
 # Simple wallpaper setter for i3
 WALLPAPER_DIR="$HOME/Pictures/wallpapers"
 
-# Find a random wallpaper
-wallpaper=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" \) | shuf -n 1)
+# Find a random wallpaper (null-safe, single pipeline)
+wallpaper=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" \) -print0 | shuf -z -n1 | tr -d '\0')
 
 if [ -n "$wallpaper" ]; then
-    # Set wallpaper based on session type
-    if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-        if command -v swaymsg >/dev/null 2>&1; then
-            swaymsg output "*" bg "$wallpaper" fill
-        fi
+    # Set wallpaper based on actual display server (reliable detection)
+    if [ -n "$WAYLAND_DISPLAY" ] && command -v swaymsg >/dev/null 2>&1; then
+        # Wayland session
+        swaymsg output "*" bg "$wallpaper" fill
+    elif [ -n "$DISPLAY" ] && command -v xwallpaper >/dev/null 2>&1; then
+        # X11 session
+        xwallpaper --zoom "$wallpaper"
     else
-        # Fallback to xwallpaper for X11/i3
-        if command -v xwallpaper >/dev/null 2>&1; then
-            xwallpaper --zoom "$wallpaper"
-        fi
+        # Fallback: try feh if available
+        command -v feh >/dev/null 2>&1 && feh --bg-fill "$wallpaper" || true
     fi
 
     # Update the symlink for compatibility

@@ -9,17 +9,29 @@ AGENT_BIN="/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 
 # Timeout for waiting for DBUS socket (seconds)
 WAIT_TIMEOUT=10
-WAIT_INTERVAL=0.2
 
-start_time=$(date +%s)
-while [ ! -S "$BUS_SOCKET" ]; do
-    now=$(date +%s)
-    if [ $((now - start_time)) -ge $WAIT_TIMEOUT ]; then
-        echo "polkit agent: timeout waiting for DBUS socket $BUS_SOCKET" >&2
-        exit 1
+# Event-driven wait (1% standard: no polling)
+if [ ! -S "$BUS_SOCKET" ]; then
+    BUS_DIR="$(dirname "$BUS_SOCKET")"
+    if command -v inotifywait >/dev/null 2>&1; then
+        # Wait for socket creation event (event-driven)
+        timeout "$WAIT_TIMEOUT" inotifywait -e create,moved_to -q "$BUS_DIR" >/dev/null 2>&1 || {
+            echo "polkit agent: timeout waiting for DBUS socket $BUS_SOCKET" >&2
+            exit 1
+        }
+    else
+        # Fallback to polling if inotifywait unavailable
+        start_time=$(date +%s)
+        while [ ! -S "$BUS_SOCKET" ]; do
+            now=$(date +%s)
+            if [ $((now - start_time)) -ge $WAIT_TIMEOUT ]; then
+                echo "polkit agent: timeout waiting for DBUS socket $BUS_SOCKET" >&2
+                exit 1
+            fi
+            sleep 0.5
+        done
     fi
-    sleep $WAIT_INTERVAL
-done
+fi
 
 # If an authentication agent is already registered for this unix-session, exit
 if journalctl -b --no-pager | rg -q "Registered Authentication Agent for unix-session"; then

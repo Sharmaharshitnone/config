@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Usage: i3-tmux-launcher <session_name> <directory> <command>
+
+# Input validation
+if [[ -z "$1" ]] || [[ -z "$2" ]]; then
+    echo "Usage: i3-tmux-launcher <session_name> <directory> [command]" >&2
+    exit 1
+fi
+
+SESSION="$1"
+DIR="$2"
+CMD="$3"
+
+# 1. Ensure the session exists (detached) if it doesn't already.
+# Use -s to check only for the specific session name.
+if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+  tmux new-session -d -s "$SESSION" -c "$DIR" "$CMD"
+fi
+
+# 2. Check if the 'main-tmux' kitty window is running.
+KITTY_PID=$(pgrep -f "kitty --class main-tmux" | head -n 1)
+
+if [[ -n "$KITTY_PID" ]]; then
+  # Focus the window.
+  i3-msg '[class="main-tmux"] focus' > /dev/null
+
+  # Find tmux client running under this specific kitty instance
+  # Use ps to get all descendants in one call (O(n) instead of O(n²) recursion)
+  TMUX_CLIENT_PID=$(ps --ppid "$KITTY_PID" -o pid= 2>/dev/null | while read child; do
+    # Check direct children first
+    if ps -p "$child" -o comm= 2>/dev/null | grep -q '^tmux'; then
+      echo "$child"
+      break
+    fi
+    # Check grandchildren (kitty -> shell -> tmux pattern)
+    ps --ppid "$child" -o pid= 2>/dev/null | while read grandchild; do
+      if ps -p "$grandchild" -o comm= 2>/dev/null | grep -q '^tmux'; then
+        echo "$grandchild"
+        break
+      fi
+    done
+  done | head -n 1)
+  
+  if [[ -n "$TMUX_CLIENT_PID" ]]; then
+    # Get TTY from the specific tmux client process
+    TMUX_TTY=$(ps -p "$TMUX_CLIENT_PID" -o tty= 2>/dev/null | sed 's|^|/dev/|')
+    
+    if [[ -n "$TMUX_TTY" ]] && [[ "$TMUX_TTY" != "/dev/?" ]]; then
+      # Switch to the session in the existing tmux client
+      tmux switch-client -c "$TMUX_TTY" -t "$SESSION" 2>/dev/null || {
+        # Fallback: if switch fails, launch new window
+        setsid kitty --class main-tmux tmux attach -t "$SESSION" >/dev/null 2>&1 & disown
+      }
+    else
+      # TTY not found, launch new window
+      setsid kitty --class main-tmux tmux attach -t "$SESSION" >/dev/null 2>&1 & disown
+    fi
+  else
+    # No tmux client found under kitty, launch new window
+    setsid kitty --class main-tmux tmux attach -t "$SESSION" >/dev/null 2>&1 & disown
+  fi
+
+else
+  # Launch new kitty attached to the session.
+  setsid kitty --class main-tmux tmux attach -t "$SESSION" >/dev/null 2>&1 & disown
+fi

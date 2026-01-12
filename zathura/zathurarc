@@ -27,9 +27,10 @@ map [fullscreen] g goto top
 # --- Core UX Settings ---
 set guioptions ""                # Remove scrollbars and UI chrome for pure reading
 set adjust-open "width"          # Open documents fitted to width
-set render-loading false         # Disable "Loading..." text for cleaner transitions
-set scroll-step 40               # Smoother scrolling experience
-
+set render-loading false       # Disable "Loading..." text for cleaner transitions
+set scroll-step 50               # Smoother scrolling experience
+set scroll-page-aware true
+set preload-page-count 10
 # --- Gruvbox Dark (Recolor Mode) ---
 # Toggled via 'i'. Optimized for long reading sessions.
 set recolor-lightcolor "#282828" # Background (Gruvbox Dark Hard)

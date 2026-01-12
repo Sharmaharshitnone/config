@@ -1,10 +1,108 @@
 #!/usr/bin/env python3
-# Auto-rename i3 workspaces to include a primary app name (text only).
-# Requires: pip3 install --user i3ipc
-
 import i3ipc
+import os
 import sys
 import re
+
+# Application name mappings for cleaner display names
+# Gruvbox colors:
+# Red: #fb4934, Green: #b8bb26, Yellow: #fabd2f, Blue: #83a598, Purple: #d3869b, Aqua: #8ec07c, Orange: #fe8019, Gray: #928374
+
+APP_NAME_MAP = {
+    # Browsers
+    "firefox": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "google-chrome": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "chromium": "<span size='x-large' foreground='#83a598'> </span>",
+    "brave-browser": "<span size='x-large' foreground='#fe8019'> </span>",
+    "vivaldi-stable": "<span size='x-large' foreground='#fb4934'> </span>",
+    "zen-alpha": "<span size='x-large' foreground='#83a598'> </span>",
+
+    # Terminals
+    "alacritty": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "kitty": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "st": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "gnome-terminal": "<span size='x-large' foreground='#b8bb26'> </span>",
+
+    # Editors
+    "code": "<span size='x-large' foreground='#83a598'>󰨞 </span>",
+    "antigravity": "<span size='x-large' foreground='#83a598'> </span>",
+    "code-oss": "<span size='x-large' foreground='#83a598'>󰨞 </span>",
+    "nvim": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "vim": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "neovide": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "emacs": "<span size='x-large' foreground='#d3869b'> </span>",
+
+    # Development
+    "jetbrains-idea": "<span size='x-large' foreground='#fb4934'> </span>",
+    "jetbrains-clion": "<span size='x-large' foreground='#83a598'> </span>",
+    "jetbrains-pycharm": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "jetbrains-webstorm": "<span size='x-large' foreground='#8ec07c'>󰛦 </span>",
+    "jetbrains-rider": "<span size='x-large' foreground='#fb4934'>󰆧 </span>",
+    "jetbrains-goland": "<span size='x-large' foreground='#83a598'> </span>",
+    "jetbrains-datagrip": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "jetbrains-rubymine": "<span size='x-large' foreground='#fb4934'> </span>",
+    "jetbrains-phpstorm": "<span size='x-large' foreground='#d3869b'> </span>",
+    "postman": "<span size='x-large' foreground='#fe8019'>󰛮 </span>",
+    "docker": "<span size='x-large' foreground='#83a598'> </span>",
+    "virt-manager": "<span size='x-large' foreground='#fabd2f'>󰢔 </span>",
+    "gnome-boxes": "<span size='x-large' foreground='#fabd2f'>󰢔 </span>",
+    "virtualbox": "<span size='x-large' foreground='#83a598'>󰢔 </span>",
+
+    # Communication
+    "discord": "<span size='x-large' foreground='#83a598'> </span>",
+    "slack": "<span size='x-large' foreground='#d3869b'> </span>",
+    "telegramdesktop": "<span size='x-large' foreground='#83a598'> </span>",
+    "telegram": "<span size='x-large' foreground='#83a598'> </span>",
+    "mailspring": "<span size='x-large' foreground='#83a598'>󰇰 </span>",
+    "thunderbird": "<span size='x-large' foreground='#83a598'> </span>",
+    "evolution": "<span size='x-large' foreground='#83a598'>󰇰 </span>",
+    "zoom": "<span size='x-large' foreground='#83a598'> </span>",
+    "signal": "<span size='x-large' foreground='#83a598'>󰍡 </span>",
+    "whatsapp-for-linux": "<span size='x-large' foreground='#b8bb26'> </span>",
+
+    # Media
+    "spotify": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "pavucontrol": "<span size='x-large' foreground='#fabd2f'>󰕾 </span>",
+    "vlc": "<span size='x-large' foreground='#fe8019'>󰕼 </span>",
+    "mpv": "<span size='x-large' foreground='#d3869b'> </span>",
+    "obs": "<span size='x-large' foreground='#fb4934'>󰑋 </span>",
+    "obs-studio": "<span size='x-large' foreground='#fb4934'>󰑋 </span>",
+    "gimp": "<span size='x-large' foreground='#fb4934'> </span>",
+    "inkscape": "<span size='x-large' foreground='#fb4934'> </span>",
+    "steam": "<span size='x-large' foreground='#83a598'> </span>",
+
+    # System & Utilities
+    "thunar": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "nautilus": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "pcmanfm": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "dolphin": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "yazi": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "ranger": "<span size='x-large' foreground='#fabd2f'> </span>",
+    "htop": "<span size='x-large' foreground='#b8bb26'>󰓅 </span>",
+    "btop": "<span size='x-large' foreground='#fb4934'>󰓅 </span>",
+    "gparted": "<span size='x-large' foreground='#fb4934'>󰋊 </span>",
+    "clock": "<span size='x-large' foreground='#d3869b'> </span>",
+    "peaclock": "<span size='x-large' foreground='#d3869b'> </span>",
+    "calc": "<span size='x-large' foreground='#ebdbb2'> </span>",
+    "calculator": "<span size='x-large' foreground='#ebdbb2'> </span>",
+    "galculator": "<span size='x-large' foreground='#ebdbb2'> </span>",
+    "zathura": "<span size='x-large' foreground='#fb4934'> </span>",
+
+    # Office
+    "libreoffice": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "libreoffice-writer": "<span size='x-large' foreground='#83a598'> </span>",
+    "libreoffice-calc": "<span size='x-large' foreground='#b8bb26'> </span>",
+    "libreoffice-impress": "<span size='x-large' foreground='#fe8019'> </span>",
+
+    # Custom / Other
+    "scratchpad": "<span size='x-large' foreground='#ebdbb2'> </span>",
+    "main-tmux": "<span size='x-large' foreground='#ebdbb2'> </span>",
+    "gemini": "<span size='x-large' foreground='#8ec07c'>󰚩 </span>",
+    "gemini-sc": "<span size='x-large' foreground='#8ec07c'>󰚩 </span>",
+    "task": "<span size='x-large' foreground='#fb4934'> </span>",
+    "tasks": "<span size='x-large' foreground='#fb4934'> </span>",
+    "todo": "<span size='x-large' foreground='#fb4934'> </span>",
+}
 
 def short_class(con):
     """Return a short, lowercase token for a connection's window class/instance.
@@ -16,16 +114,17 @@ def short_class(con):
         or ""
     )
     if isinstance(cls, str) and cls:
-        # Just return the class name lowercased, minimal processing
-        return cls.lower()
+        token = cls.split()[-1]
+        return token.lower()
     return ""
 
 def workspace_label(ws):
     """Build a readable workspace label from the workspace node.
     Strategy:
     - Collect leaf windows on the workspace and pick the first as primary.
-    - Use the raw window class name as the label.
-    - If ws.num == -1 (named workspace), try to extract a leading number.
+    - Match an icon by exact lowercased class/name or by substring.
+    - If ws.num == -1 (named workspace), try to extract a leading number from ws.name.
+    - Preserve existing non-empty names when the workspace is empty.
     """
     apps = []
     for leaf in ws.leaves():
@@ -36,8 +135,11 @@ def workspace_label(ws):
             apps.append(leaf.name)
 
     if apps:
-        # Use the first app's name found
-        primary_name = apps[0]
+        primary = apps[0]
+        primary_l = primary.lower() if isinstance(primary, str) else ""
+
+        # Get clean app name from mapping or use original
+        clean_name = APP_NAME_MAP.get(primary_l, primary)
 
         # workspace number: ws.num may be -1 for named workspaces
         if ws.num != -1:
@@ -47,18 +149,15 @@ def workspace_label(ws):
             ws_num = int(m.group(1)) if m else None
 
         if ws_num is not None:
-            label = f"{ws_num}: {primary_name}"
+            label = f"{ws_num}: {clean_name}"
         else:
-            label = f"{primary_name}"
+            label = f"{clean_name}"
     else:
-        # no application windows: preserve number or existing name if it's just a number
-        # If the workspace is empty, we usually want "1" not "1: "
-        if ws.num != -1:
-             label = str(ws.num)
+        # no application windows on this workspace: preserve the existing name if set
+        if ws.name:
+            label = ws.name
         else:
-             # Try to keep the number part if it exists
-             m = re.match(r"^(\d+)", (ws.name or ""))
-             label = m.group(1) if m else ws.name
+            label = str(ws.num)
 
     return label
 
@@ -80,6 +179,7 @@ def update_names(i3):
                 if cur:
                     cmd = f'rename workspace "{cur}" to "{new}"'
                 else:
+                    # fallback to number-based rename
                     cmd = f'rename workspace number {ws.num} to "{new}"'
                 i3.command(cmd)
                 print(

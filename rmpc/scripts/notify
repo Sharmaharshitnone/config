@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+
+# Directory where to store temporary data
+TMP_DIR="/tmp/rmpc"
+
+# Ensure the directory is created
+mkdir -p "$TMP_DIR"
+
+# Where to temporarily store the album art received from rmpc
+ALBUM_ART_PATH="$TMP_DIR/notification_cover"
+
+# Path to fallback album art if no album art is found by rmpc/mpd
+DEFAULT_ALBUM_ART_PATH="$TMP_DIR/default_album_art.jpg"
+
+# Save album art of the currently playing song to a file (suppress stderr)
+if ! rmpc albumart --output "$ALBUM_ART_PATH" 2>/dev/null; then
+    # Use default album art if rmpc returns non-zero exit code
+    if [ -f "$DEFAULT_ALBUM_ART_PATH" ]; then
+        ALBUM_ART_PATH="${DEFAULT_ALBUM_ART_PATH}"
+    else
+        ALBUM_ART_PATH=""
+    fi
+fi
+
+# Send the notification
+if [ -n "$ALBUM_ART_PATH" ] && [ -f "$ALBUM_ART_PATH" ]; then
+    notify-send -i "${ALBUM_ART_PATH}" -a "rmpc" "Now Playing" "$ARTIST - $TITLE"
+else
+    notify-send -a "rmpc" "Now Playing" "$ARTIST - $TITLE"
+fi
+
+# Track play count only if $FILE is set
+if [ -n "$FILE" ]; then
+    sticker=$(rmpc sticker get "$FILE" "playCount" 2>/dev/null | jq -r '.value' 2>/dev/null)
+    if [ -z "$sticker" ] || [ "$sticker" = "null" ]; then
+        rmpc sticker set "$FILE" "playCount" "1" 2>/dev/null
+    else
+        rmpc sticker set "$FILE" "playCount" "$((sticker + 1))" 2>/dev/null
+    fi
+fi

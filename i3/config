@@ -3,17 +3,21 @@ font pango:JetBrainsMono Nerd Font 8
 
 default_border pixel 0
 default_floating_border pixel 1
-# exec --no-startup-id systemctl suspend
+
+# Dependency validation (1% Standard: fail-fast)
+exec --no-startup-id bash -c 'missing=""; for cmd in xdotool ffmpeg pactl xwallpaper; do command -v $cmd >/dev/null || missing="$missing $cmd"; done; [ -n "$missing" ] && notify-send -u critical "Missing Dependencies" "Install:$missing" || true'
+
 exec --no-startup-id unclutter -idle 1 -root &
-exec --no-startup-id dex --autostart --environment i3
 exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 exec --no-startup-id nm-applet
 exec --no-startup-id blueman-applet
 exec --no-startup-id dunst
-exec --no-startup-id clipmenud
+exec --no-startup-id sh -c 'DISPLAY=:0 clipmenud 2>/dev/null &'
 exec --no-startup-id udiskie --tray &
+exec --no-startup-id aw-qt
 exec --no-startup-id ~/.config/i3/scripts/start-polkit-agent.sh &
 exec --no-startup-id ~/.config/i3/scripts/bg.sh
+exec_always --no-startup-id picom -b
 exec_always --no-startup-id ~/.config/i3/scripts/workspace-names.py &
 # Touchpad configuration - enable tap to click and proper button mapping
 exec --no-startup-id xinput set-prop "ELAN0420:00 04F3:3240 Touchpad" "libinput Tapping Enabled" 1
@@ -23,7 +27,7 @@ focus_on_window_activation focus
 for_window [all] title_window_icon on
 
 exec_always --no-startup-id ~/.config/i3/scripts/alternating_layouts.py
-exec_always setxkbmap -option caps:escape,altwin:menu_win
+exec_always setxkbmap -option caps:swapescape,altwin:menu_win
 
 # For recording screen
 bindsym $mod+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record.sh toggle
@@ -36,7 +40,7 @@ include ~/.config/i3/config.d/*.conf
 bindsym $mod+Shift+s exec --no-startup-id shutdown -h now
 # for_window [class="^.*"] border pixel 1
 
-gaps inner 5
+gaps inner 20
 
 bindsym $mod+Shift+plus gaps inner all plus 5
 bindsym $mod+Shift+minus gaps inner all minus 5
@@ -53,8 +57,7 @@ tiling_drag modifier titlebar
 for_window [class="kitty"] border pixel 0
 bindsym $mod+Return exec kitty
 bindsym $mod+Control+Return exec kitty tmux attach
-bindsym $mod+Shift+Return exec /home/kali/.local/bin/open-term-same-dir
-bindsym $mod+c+Return exec /home/kali/.local/bin/open-term-same-dir
+bindsym $mod+Shift+Return exec open-term-same-dir
 
 # kill focused window
 bindsym $mod+Shift+q kill
@@ -130,7 +133,7 @@ bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 # exit i3 gracefully (logs you out of your X session and returns to ly)
 
-bindsym $mod+Shift+e exec pkill -f clipmenud; exec "i3-msg exit"
+bindsym $mod+Shift+e exec "pkill -TERM clipmenud; pkill -TERM picom; pkill -TERM xsel; sleep 0.2; i3-msg exit"
 # resize window (you can also use the mouse for that)
 mode "resize" {
         bindsym h resize shrink width 10 px or 10 ppt
@@ -169,24 +172,23 @@ bindsym $mod+m bar mode toggle
 
 
 bar {
-        i3bar_command i3bar --transparency
+        # i3bar_command i3bar
         
         # status_command i3status | ~/.config/i3/scripts/i3status_json.py
         status_command  i3status-rs ~/.config/i3status-rust/config.toml 
         font pango:JetBrainsMono Nerd Font 11
-        # strip_workspace_numbers yes
-        padding 0
+        strip_workspace_numbers no
         position top
-	mode dock
+	mode hide
         hidden_state hide
         modifier $mod+Mod1
          colors {
         background #282828
 
         # target             border      bg          text
-        focused_workspace    $blue       $surface0   $text
-        active_workspace     $surface1   $mantle     $subtext1
-        inactive_workspace   $mantle     #000000     $overlay1
+        focused_workspace    $blue       #282828     $text
+        active_workspace     $surface1   #282828     $subtext1
+        inactive_workspace   $mantle     #282828     $overlay1
         urgent_workspace     $red        #000000     $maroon
     }
 

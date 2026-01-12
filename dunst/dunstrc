@@ -99,7 +99,7 @@
     progress_bar_corner_radius = 4
 
     # Apps
-    dmenu = /home/kali/work/config/dunst/scripts/dunst_click.sh -p dunst:
+    dmenu = ~/.config/dunst/scripts/dunst_click.sh -p dunst:
     browser = /usr/bin/xdg-open
     always_run_script = true
     title = Dunst

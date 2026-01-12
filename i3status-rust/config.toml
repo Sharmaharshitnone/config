@@ -1,107 +1,260 @@
-icons_format = " {icon} "
+icons_format = "<span size='large'>{icon}</span>"
 
 [theme]
 # theme = "ctp-mocha"
 theme = "gruvbox-dark"
-overrides = { idle_bg = "none", idle_fg = "#ebdbb2", separator = "  ", separator_bg = "none", separator_fg = "none" } 
+overrides = { idle_bg = "none", idle_fg = "#ebdbb2", info_bg = "none", info_fg = "#83a598", good_bg = "none", good_fg = "#b8bb26", warning_bg = "none", warning_fg = "#fabd2f", critical_bg = "none", critical_fg = "#fb4934", separator = "  ", separator_bg = "none", separator_fg = "none" } 
 
 [icons]
-icons = "awesome6"
+icons = "material-nf"
 
+# Timer
+[[block]]
+block = "custom"
+interval = 1
+command = "~/.local/bin/i3-timer status"
+
+[[block.click]]
+button = "left"
+cmd = "~/.local/bin/i3-timer menu"
+
+[[block.click]]
+button = "right"
+cmd = "~/.local/bin/i3-timer reset"
+update = true
+
+# 6b. warp vpn
+[[block]]
+block = "custom"
+command = """
+    if warp-cli status 2>/dev/null | grep -qi 'connected'; then
+        echo '<span size=\"x-large\">󰀸</span>'
+    else
+        echo '<span size=\"large\"></span>'
+    fi
+"""
+interval = 5
+[[block.click]]
+button = "left"
+cmd = "kitty -e zsh -ic warp"
+
+
+# 11c. TASK (TimeWarrior)
+[[block]]
+block = "custom"
+command = "timew | awk '/^Tracking/ { sub(/^Tracking /, \"\"); task=$0 } /Total|Current/ { time=$2 } END { if (task) print \" \" task \" (\" time \")\" }'"
+interval = 10
+format = "$text"
+[[block.click]]
+button = "left"
+cmd = "tmux select-window -t scratchpad:vit 2>/dev/null || tmux new-window -t scratchpad -n vit vit; i3-msg scratchpad show"
+
+# 11b. DATE
+[[block]]
+block = "time"
+format = "<span weight='bold' size='large'></span> <span rise='1000'>$timestamp.datetime(f:'%a %d %b')</span>"
+interval = 60
+[[block.click]]
+button = "left"
+cmd = "tmux select-window -t scratchpad:calcurse 2>/dev/null || tmux new-window -t scratchpad -n calcurse calcurse; i3-msg scratchpad show"
+[[block.click]]
+button = "right"
+cmd = "tmux select-window -t scratchpad:vit 2>/dev/null || tmux new-window -t scratchpad -n vit vit; i3-msg scratchpad show"
 
 # 11. TIME
 [[block]]
 block = "time"
 interval = 60
-format = "TIME: $timestamp.datetime(f:'%I:%M %p')"
+format = "<span size='large' weight='bold' ></span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
+[block.theme_overrides]
+[[block.click]]
+button = "left"
+cmd = "tmux select-window -t scratchpad:peaclock 2>/dev/null || tmux new-window -t scratchpad -n peaclock peaclock; i3-msg scratchpad show"
+
+# 0. FOCUSED WINDOW
+[[block]]
+block = "focused_window"
+format = " $title.str(max_w:30) |"
 [block.theme_overrides]
 
-# # 0. FOCUSED WINDOW
-# [[block]]
-# block = "focused_window"
-# format = " $title.str(max_w:60) | None "
-# [block.theme_overrides]
-
-
-# 2. DOCKER (Smart)
-# [[block]]
-# block = "custom"
-# command = "if systemctl is-active --quiet docker; then echo \" $(docker ps -q | wc -l)\"; else echo \" zzz\"; fi"
-# interval = 10
-# [block.theme_overrides]
-# [[block.click]]
-# button = "left"
-# cmd = "systemctl start docker"
+# 2b. UPTIME
+[[block]]
+block = "uptime"
+interval = 60
+format = "<span weight='bold' size='large'>UP:</span><span rise='1000'>$text</span>"
+[block.theme_overrides]
 
 # 3. CPU
 [[block]]
 block = "cpu"
 interval = 1
-format = "CPU:$utilization $frequency"
+format = "<span size='large'></span> <span rise='1000'>$utilization $frequency</span>"
 [block.theme_overrides]
 [[block.click]]
 button = "left"
-cmd = "alacritty -e htop"
-
-# 4. TEMPERATURE (i7-13620H)
-[[block]]
-block = "temperature"
-format = "TEMP:$average"
-interval = 5
-chip = "coretemp-isa-*"
-[block.theme_overrides]
+cmd = "tmux select-window -t scratchpad:btop 2>/dev/null || tmux new-window -t scratchpad -n btop btop; i3-msg scratchpad show"
+[[block.click]]
+button = "right"
+cmd = "tmux select-window -t scratchpad:htop 2>/dev/null || tmux new-window -t scratchpad -n htop htop; i3-msg scratchpad show"
 
 # 5. MEMORY
 [[block]]
 block = "memory"
-format = "RAM:$mem_used_percents"
-format_alt = "RAM:$mem_used / $mem_total "
+format = "<span size='large'></span> <span rise='1000'> $mem_used_percents</span>"
+format_alt = "<span size='large'></span> <span rise='1000'> $mem_used / $mem_total </span>"
 interval = 5
 warning_mem = 80
 critical_mem = 95
 [block.theme_overrides]
 
-
-# 7. VOLUME
+# 7. VOLUME (Speaker)
 [[block]]
 block = "sound"
-format = "VOL:$volume"
-[block.theme_overrides]
+format = "<span weight='bold' size='x-large'>$icon</span> <span rise='1000'>$volume</span>"
+show_volume_when_muted = true
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
+[[block.click]]
+button = "right"
+action = "toggle_mute"
 
-# 8. MIC
+# 8. MIC (Microphone)
 [[block]]
 block = "sound"
 device_kind = "source"
-format = "MIC:$volume"
-[block.theme_overrides]
+format = "<span weight='bold' size='x-large'>$icon</span> <span rise='1000'>$volume</span>"
+show_volume_when_muted = true
 [[block.click]]
 button = "left"
 cmd = "pavucontrol"
-
-
-# 8. MIC
-[[block]]
-block = "custom"
-format = "BG"
-command = "echo'BG'"
-[block.theme_overrides]
+[[block.click]]
+button = "right"
+action = "toggle_mute"
 [[block.click]]
 button = "left"
-cmd = "~/.config/i3/scripts/bg.sh"
+cmd = "pavucontrol"
+[[block.click]]
+button = "right"
+action = "toggle_mute"
+update = true
 
 # 5b. BACKLIGHT (Brightness)
 [[block]]
 block = "backlight"
-format = "GAMMA:$brightness"
+format = "<span size='large'>󰃠</span> <span rise='1000'>$brightness</span>"
 missing_format = ""
 [block.theme_overrides]
 
+# 9. TIMER (Stopwatch)
+[[block]]
+block = "custom"
+command = "~/.config/i3/scripts/timer_control.sh read"
+interval = 1
+json = true
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/timer_control.sh toggle" 
+[[block.click]]
+button = "right"
+cmd = "~/.config/i3/scripts/timer_control.sh reset" 
+update = true
+
+# 5c. REDSHIFT
+[[block]]
+block = "custom"
+command = "~/.config/i3/scripts/redshift-status.sh"
+interval = 2
+format = "<span size='large'></span> <span rise='1000'>$text</span>"
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/toggle-redshift.sh"
+
+# 5d. MUSIC
+[[block]]
+block = "music"
+format = " $icon {$combo.str(max_w:25,rot_interval:0.5) $play |}"
+
+[[block.click]]
+button = "left"
+action = "play_pause"
+[[block.click]]
+button = "right"
+action = "next"
+[[block.click]]
+button = "middle"
+action = "prev"
+
+# 6a. POWER MODE
+[[block]]
+block = "custom"
+command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor | sed -e 's/performance/⚡ Perf/' -e 's/powersave/🌱 Save/'"
+interval = 5
+format = "$text"
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/power-control.sh performance"
+[[block.click]]
+button = "right"
+cmd = "~/.config/i3/scripts/power-control.sh powersave"
+[[block.click]]
+button = "middle"
+cmd = "~/.config/i3/scripts/power-control.sh reset"
+
 # 6. BATTERY
+
 [[block]]
 block = "battery"
-format = " BAT:$percentage "
-missing_format = ""
+format = "$icon $percentage {$time |} {$power |}"
 interval = 5
+warning = 30
+critical = 15
+
+
+# 4. TEMPERATURE
+[[block]]
+block = "temperature"
+format = "<span size='large'></span><span rise='1000'> $average</span>"
+interval = 5
+chip = "*-isa-*"
+#chip = "coretemp-isa-*"
+[block.theme_overrides]
+
+# 7a. PICOM TOGGLE
+[[block]]
+block = "custom"
+command = "pgrep -x picom >/dev/null && echo '' FX || echo '' FX"
+format = "<span size='large'>$text</span>"
+interval = 2
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/picom-toggle.sh"
+
+# 8. BACKGROUND
+[[block]]
+block = "custom"
+command = "echo ''"
+format = "<span size='large'>$text</span>"
+# interval = once
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/bg.sh"
+
+
+# 10. DAILY NOTES
+[[block]]
+block = "custom"
+command = "echo ''"
+format = "<span size='large'>$text </span>"
+# interval = 3600
+[block.theme_overrides]
+[[block.click]]
+button = "left"
+cmd = "mkdir -p ~/notes/10_daily/$(date +'%Y') && (tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape \":e ~/notes/10_daily/$(date +'%Y')/$(date +'%Y-%m-%d').md\" C-m || tmux new-window -t scratchpad -n notes \"nvim ~/notes/10_daily/$(date +'%Y')/$(date +'%Y-%m-%d').md\"); i3-msg scratchpad show"
+[[block.click]]
+button = "right"
+cmd = "mkdir -p ~/notes/20_work/reference && (tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape \":e ~/notes/20_work/reference/\" || tmux new-window -t scratchpad -n notes \"nvim ~/notes/20_work/reference/\") && i3-msg scratchpad show"
+[[block.click]]
+button = "middle"
+cmd = "(tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape Space n s && i3-msg scratchpad show) || (tmux new-window -t scratchpad -n notes \"nvim -c 'normal \\<Space>ns'\" && i3-msg scratchpad show)"
+

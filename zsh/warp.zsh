@@ -3,6 +3,9 @@
 warp() {
     local conn_status warp_state exit_ip colo
     
+    # Safety Trap: If script is interrupted (Ctrl+C), always unlock DNS
+    trap 'sudo chattr -i /etc/resolv.conf 2>/dev/null; trap - INT TERM EXIT' INT TERM EXIT
+    
     # Your custom DNS (applied when WARP disconnects)
     local -r CLEARNET_DNS='# Custom DNS configuration
 nameserver 8.8.8.8
@@ -105,9 +108,13 @@ nameserver 1.1.1.1'
         *)
             echo "[?] Unknown state. Raw output:" >&2
             echo "$conn_status" >&2
+            trap - INT TERM EXIT  # Clear trap on error
             return 1
             ;;
     esac
+    
+    # Clear trap on successful completion
+    trap - INT TERM EXIT
 }
 
 # Quick status (no toggle)

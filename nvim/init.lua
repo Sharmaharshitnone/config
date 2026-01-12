@@ -649,6 +649,8 @@ require('lazy').setup({
             map('<leader>th', function()
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
+            -- Disable inlay hints by default to avoid clutter
+            vim.lsp.inlay_hint.enable(false, { bufnr = event.buf })
           end
         end,
       })
@@ -667,13 +669,7 @@ require('lazy').setup({
             [vim.diagnostic.severity.HINT] = '󰌶 ',
           },
         } or {},
-        virtual_text = {
-          source = 'if_many',
-          spacing = 2,
-          format = function(diagnostic)
-            return diagnostic.message
-          end,
-        },
+        virtual_text = false,
       }
 
       -- LSP servers and clients are able to communicate to each other what features they support.
@@ -821,6 +817,7 @@ require('lazy').setup({
         -- See :h blink-cmp-config-keymap for defining your own keymap
         -- NOTE: Using 'default' preset to avoid conflict with Copilot Tab mapping
         preset = 'default',
+        ['<C-k>'] = {},
 
         -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
         --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps

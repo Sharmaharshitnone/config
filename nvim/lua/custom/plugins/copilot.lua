@@ -53,7 +53,7 @@ $selection
 3. **Simple First Approach**:
    - Explain the most straightforward solution first (even if not optimal)
    - Use plain English to describe the logic before showing code
-   - Write clean C++ code in /home/kali/work/language/Cpp/dojo-questions/ with fast- before the name and with:
+   - Write clean C++ code in $HOME/language/Cpp/dojo-questions/ with fast- before the name and with:
      - Simple variable names that make sense
      - Comments for EVERY major step (written like you're explaining to a friend)
      - Explanations for any tricky parts or coding shortcuts
@@ -65,7 +65,7 @@ $selection
    - Build up to the optimal solution step-by-step
    - Explain your thinking process and why this approach works
    - Analyze time and space complexity with concrete examples
-   - Write clean C++ code in /home/kali/work/language/Cpp/dojo-questions/ with:
+   - Write clean C++ code in $HOME/language/Cpp/dojo-questions/ with:
      - Simple variable names that make sense
      - Comments for EVERY major step (written like you're explaining to a friend)
      - Explanations for any tricky parts or coding shortcuts
