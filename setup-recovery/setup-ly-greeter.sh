@@ -84,6 +84,17 @@ fi
 ln -s "$LY_AUTOLOGIN_SOURCE" "$LY_AUTOLOGIN_LINK"
 log_info "✓ PAM config symlinks created"
 
+# Link vconsole.conf (TTY keyboard/font settings)
+log_info "Linking vconsole configuration..."
+VCONSOLE_LINK="/etc/vconsole.conf"
+VCONSOLE_SOURCE="$CONFIG_BASE_DIR/vconsole.conf"
+
+if [[ -e "$VCONSOLE_LINK" || -L "$VCONSOLE_LINK" ]]; then
+    rm -f "$VCONSOLE_LINK"
+fi
+ln -s "$VCONSOLE_SOURCE" "$VCONSOLE_LINK"
+log_info "✓ vconsole.conf symlink created"
+
 # Link doas configuration
 log_info "Linking doas configuration..."
 DOAS_LINK="/etc/doas.conf"
