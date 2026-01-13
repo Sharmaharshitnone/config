@@ -124,3 +124,11 @@ echo -e "if you modify /etc/kernel/cmdline, you MUST run:"
 echo -e "   ${BLUE}sudo mkinitcpio -P${NC}"
 echo -e "before rebooting to re-generate and re-sign the kernel."
 echo "========================================================"
+
+# --- 9. Fix /boot Permissions (Remove Random Seed Warnings) ---
+log "Setting /boot permissions to remove random seed warnings..."
+sudo chown root:root /boot
+sudo chmod 700 /boot             
+sudo chown root:root /boot/loader/random-seed
+sudo chmod 600 /boot/loader/random-seed
+success "Boot permissions secured."
