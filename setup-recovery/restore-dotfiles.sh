@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restore dotfiles via symlinks (not copies) from parent /home/kali/work/config directory
+# Restore dotfiles via symlinks (not copies) from parent config directory
 # Creates symbolic links to avoid duplication
 # Auto-detects and makes scripts executable
 

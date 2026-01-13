@@ -25,6 +25,28 @@ echo "========================================================"
 echo "      Enabling User Systemd Services"
 echo "========================================================"
 echo ""
+
+# === Setup MPD Directories ===
+log_info "Setting up MPD directories..."
+mkdir -p ~/.local/share/mpd/playlists
+mkdir -p ~/Music
+
+# Create FIFO for visualizer (cava)
+if [ -e /tmp/mpd.fifo ]; then
+    rm -f /tmp/mpd.fifo
+fi
+mkfifo /tmp/mpd.fifo
+chmod 644 /tmp/mpd.fifo
+
+# CRITICAL: Remove database directory if it exists (MPD expects it to be a file)
+if [ -d ~/.local/share/mpd/database ]; then
+    log_warn "Removing incorrect 'database' directory (MPD expects a file)"
+    rm -rf ~/.local/share/mpd/database
+fi
+
+log_info "✓ MPD directories created"
+echo ""
+
 log_info "Available user services:"
 echo ""
 

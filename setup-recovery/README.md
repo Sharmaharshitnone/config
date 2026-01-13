@@ -117,19 +117,19 @@ sbctl status
 
 **Config Restoration (Symlinks):**
 ```
-~/.config/nvim/       → /home/kali/work/config/nvim/
-~/.config/kitty/      → /home/kali/work/config/kitty/
-~/.config/i3/         → /home/kali/work/config/i3/
-~/.config/sway/       → /home/kali/work/config/sway/
-~/.config/zsh/        → /home/kali/work/config/zsh/
-~/.config/dunst/      → /home/kali/work/config/dunst/
-~/.config/cava/       → /home/kali/work/config/cava/
-~/.config/picom/      → /home/kali/work/config/picom/
-~/.config/rmpc/       → /home/kali/work/config/rmpc/
-~/.config/zathura/    → /home/kali/work/config/zathura/
-~/.config/nsxiv/      → /home/kali/work/config/nsxiv/
-~/.config/fontconfig/ → /home/kali/work/config/fontconfig/
-~/.config/tmux/       → /home/kali/work/config/tmux/
+~/.config/nvim/       → ~/config/nvim/
+~/.config/kitty/      → ~/config/kitty/
+~/.config/i3/         → ~/config/i3/
+~/.config/sway/       → ~/config/sway/
+~/.config/zsh/        → ~/config/zsh/
+~/.config/dunst/      → ~/config/dunst/
+~/.config/cava/       → ~/config/cava/
+~/.config/picom/      → ~/config/picom/
+~/.config/rmpc/       → ~/config/rmpc/
+~/.config/zathura/    → ~/config/zathura/
+~/.config/nsxiv/      → ~/config/nsxiv/
+~/.config/fontconfig/ → ~/config/fontconfig/
+~/.config/tmux/       → ~/config/tmux/
 And more...           (14 total directories)
 ```
 
@@ -172,12 +172,21 @@ And more...           (14 total directories)
 
 **When prompted:** "Enable services? (y/n)"
 
-**If yes, enables:**
-- `systemctl --user enable --now mpd`
-- `systemctl --user enable --now mpd-mpris`
-- `systemctl --user enable --now gdrive`
+**If yes, automatically:**
+1. **Creates MPD directories:**
+   - `~/.local/share/mpd/playlists`
+   - `~/Music`
+   - `/tmp/mpd.fifo` (FIFO for visualizers like cava)
+   - Removes any incorrect `database` directory (MPD expects it to be a file)
 
-**Result:** Services autostart at user login
+2. **Enables user services:**
+   - `systemctl --user enable --now mpd` (Music Player Daemon)
+   - `systemctl --user enable --now mpd-mpris` (MPRIS bridge for media controls)
+   - `systemctl --user enable --now gdrive` (Rclone mount if configured)
+
+**Result:** Services autostart at user login with proper directory structure
+
+**Note:** The MPD setup prevents the common "Failed to connect to MPD - No such file or directory" error by ensuring all required directories exist before starting the daemon.
 
 ### Optional: Boot Optimization (NEW v2.0)
 
@@ -273,7 +282,7 @@ sudo ./bootstrap-yay.sh  # Retry
 **Check:**
 ```bash
 readlink -f ~/.config/nvim
-# Should output: /home/kali/work/config/nvim
+# Should output: ~/config/nvim
 ```
 
 **Fix (safe to rerun):**
@@ -348,7 +357,7 @@ pacman -Q | wc -l
 ### Config Directories
 ```bash
 ls -la ~/.config/ | grep "^l"
-# Result: 14 symlinks to /home/kali/work/config/
+# Result: 14 symlinks to ~/config/
 ```
 
 ### Services
@@ -442,8 +451,8 @@ After installation, verify:
 pacman -Q | wc -l        # Should be ~1,429
 
 # 2. All symlinks working
-readlink -f ~/.config/nvim         # Points to /home/kali/work/config/nvim
-readlink -f ~/.config/kitty        # Points to /home/kali/work/config/kitty
+readlink -f ~/.config/nvim         # Points to ~/config/nvim
+readlink -f ~/.config/kitty        # Points to ~/config/kitty
 # etc. for all 14 directories
 
 # 3. Services enabled (if chosen)
@@ -480,7 +489,7 @@ sudo reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mir
 ### Adding New Configs
 
 When you change a config file in `~/.config/`:
-1. Manually copy to repo: `/home/kali/work/config/`
+1. Manually copy to repo: `~/config/`
 2. The symlink automatically reflects changes
 3. Backup: `git commit` in config repo
 
@@ -677,4 +686,4 @@ STATUS: ⭐⭐⭐⭐⭐ PRODUCTION-READY
 **Author:** GitHub Copilot (Claude Haiku 4.5)  
 **License:** Open Source
 
-For the latest version, visit: `/home/kali/work/config/setup-recovery/`
+For the latest version, visit: `~/config/setup-recovery/`
