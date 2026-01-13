@@ -14,7 +14,7 @@ is_recording() {
 }
 
 start_recording() {
-  if ! command -v wf-recorder >/dev/null 2>&1; then
+  if ! type wf-recorder >/dev/null 2>&1; then
     notify "wf-recorder not found; please install it."
     exit 1
   fi

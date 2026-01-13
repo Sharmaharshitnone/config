@@ -9,10 +9,11 @@ notify() { command -v notify-send >/dev/null && notify-send "record.sh" "$1"; }
 
 get_resolution() {
   # Prefer xdpyinfo, fallback to xrandr, else default
+  # Note: using 'head -1' instead of 'awk exit' to avoid SIGPIPE issues with pipefail
   if command -v xdpyinfo >/dev/null 2>&1; then
-    xdpyinfo | awk '/dimensions:/ {print $2; exit}'
+    xdpyinfo | awk '/dimensions:/ {print $2}' | head -1
   elif command -v xrandr >/dev/null 2>&1; then
-    xrandr | awk '/\*/{print $1; exit}'
+    xrandr | awk '/\*/{print $1}' | head -1
   else
     # last-resort default
     printf "1280x720"
@@ -26,14 +27,14 @@ is_recording() {
 }
 
 start_x11() {
-  if ! command -v ffmpeg >/dev/null 2>&1; then
+  if ! type ffmpeg >/dev/null 2>&1; then
     notify "ffmpeg not found; please install ffmpeg"
     echo "ffmpeg not found" >&2
     return 127
   fi
 
   # Check for pactl (needed to get default sink monitor for system audio)
-  if ! command -v pactl >/dev/null 2>&1; then
+  if ! type pactl >/dev/null 2>&1; then
     notify "pactl not found; please install pulseaudio-utils"
     echo "pactl not found" >&2
     return 127
