@@ -121,6 +121,22 @@ for file in "${DOTFILES[@]}"; do
     fi
 done
 
+# === TMUX PLUGIN MANAGER (TPM) ===
+log_info "Setting up Tmux Plugin Manager (TPM)..."
+TPM_DIR="$HOME/.tmux/plugins/tpm"
+
+if [[ ! -d "$TPM_DIR" ]]; then
+    log_info "Installing TPM..."
+    git clone https://github.com/tmux-plugins/tpm "$TPM_DIR" || {
+        log_error "Failed to clone TPM repository"
+    }
+    log_info "✓ TPM installed to $TPM_DIR"
+    log_info "  To install plugins, run: tmux (then press Ctrl+a + I)"
+else
+    log_info "✓ TPM is already installed"
+    log_info "  To update plugins, run: tmux (then press Ctrl+a + U)"
+fi
+
 # === BIN SCRIPTS (symlink to ~/.local/bin) ===
 BIN_SOURCE="$PARENT_CONFIG_DIR/bin"
 BIN_TARGET="$HOME/.local/bin"
