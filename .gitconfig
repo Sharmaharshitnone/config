@@ -1,0 +1,20 @@
+[color]
+	ui = auto
+[core]
+	editor = nvim
+[init]
+	defaultBranch = master
+[user]
+	name = sharmaharshitnone
+	email = sharmaharshitnone@gmail.com
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential

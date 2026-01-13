@@ -47,7 +47,10 @@ CONFIG_DIRS=(
     "zathura"
     "rmpc"
     "nsxiv"
+    "gtk-3.0"
+    "gtk-4.0"
     "mpd"
+    "wallust"
 )
 
 log_info "Creating symlinks for config directories..."
@@ -87,7 +90,12 @@ done
 DOTFILES=(
     ".tmux.conf"
     ".xprofile"
+    ".xinitrc"
     ".Xresources"
+    ".zshenv"
+    ".zshrc"
+    ".p10k.zsh"
+    ".gitconfig"
 )
 
 log_info "Creating symlinks for dotfiles..."
@@ -112,6 +120,56 @@ for file in "${DOTFILES[@]}"; do
         log_warn "  ✗ $file not found (skipping)"
     fi
 done
+
+# === BIN SCRIPTS (symlink to ~/.local/bin) ===
+BIN_SOURCE="$PARENT_CONFIG_DIR/bin"
+BIN_TARGET="$HOME/.local/bin"
+
+if [[ -d "$BIN_SOURCE" ]]; then
+    log_info "Creating symlinks for bin scripts..."
+    mkdir -p "$BIN_TARGET"
+    
+    # Symlink individual executables from bin/ to ~/.local/bin
+    for script in "$BIN_SOURCE"/*; do
+        if [[ -f "$script" && -x "$script" ]]; then
+            script_name=$(basename "$script")
+            target="$BIN_TARGET/$script_name"
+            
+            # Safety: Check if already correctly linked
+            if [[ -e "$target" ]]; then
+                if [[ "$(readlink -f "$target")" == "$script" ]]; then
+                    log_info "  ✓ $script_name is already correctly linked"
+                    continue
+                fi
+                
+                # Wrong link or real file. Back it up.
+                BACKUP_NAME="${target}.backup_$(date +%Y%m%d_%H%M%S)"
+                log_warn "  ! Existing script found. Backing up to $BACKUP_NAME"
+                mv "$target" "$BACKUP_NAME"
+            fi
+            
+            log_info "  → $BIN_TARGET/$script_name (symlink)"
+            ln -s "$script" "$target"
+        fi
+    done
+    
+    log_info "✓ Bin scripts symlinked to ~/.local/bin"
+else
+    log_warn "  Bin directory not found (skipping)"
+fi
+
+# === SET ZSH AS DEFAULT SHELL ===
+if command -v zsh &>/dev/null; then
+    ZSH_PATH="$(command -v zsh)"
+    if ! grep -q "^$USER:.*:$ZSH_PATH" /etc/passwd; then
+        log_info "Setting zsh as default shell..."
+        chsh -s "$ZSH_PATH" "$USER" || log_warn "Could not set zsh as default (may need sudo)"
+    else
+        log_info "✓ zsh is already the default shell"
+    fi
+else
+    log_warn "zsh not found in PATH (skipping shell change)"
+fi
 
 # === USER SYSTEMD SERVICES ===
 SYSTEMD_USER_DIR="$CONFIG_HOME/systemd/user"
@@ -148,6 +206,49 @@ if [[ -d "$USER_SERVICES_DIR" ]]; then
     log_info "  Run: systemctl --user daemon-reload"
 else
     log_warn "  User systemd services directory not found (skipping)"
+fi
+
+# === XORG CONFIGURATION (System-wide - /etc/X11/xorg.conf.d) ===
+XORG_CONF_DIR="/etc/X11/xorg.conf.d"
+XORG_CONF_SOURCE="$PARENT_CONFIG_DIR/xorg.conf.d"
+
+if [[ -d "$XORG_CONF_SOURCE" ]]; then
+    log_info "Creating symlinks for Xorg configs..."
+    
+    # Check if we can write to /etc/X11/xorg.conf.d (requires sudo)
+    if [[ ! -w "$XORG_CONF_DIR" ]]; then
+        log_warn "⚠ /etc/X11/xorg.conf.d is not writable (requires sudo)"
+        log_warn "  Run: sudo restore-dotfiles.sh (to install Xorg configs)"
+    else
+        mkdir -p "$XORG_CONF_DIR"
+        
+        for conf_file in "$XORG_CONF_SOURCE"/*.conf; do
+            if [[ -f "$conf_file" ]]; then
+                conf_name=$(basename "$conf_file")
+                target="$XORG_CONF_DIR/$conf_name"
+                
+                # Safety: Check if already correctly linked
+                if [[ -e "$target" ]]; then
+                    if [[ "$(readlink -f "$target")" == "$conf_file" ]]; then
+                        log_info "  ✓ $conf_name is already correctly linked"
+                        continue
+                    fi
+                    
+                    # Wrong link or real file. Back it up.
+                    BACKUP_NAME="${target}.backup_$(date +%Y%m%d_%H%M%S)"
+                    log_warn "  ! Existing config found. Backing up to $BACKUP_NAME"
+                    sudo mv "$target" "$BACKUP_NAME"
+                fi
+                
+                log_info "  → $XORG_CONF_DIR/$conf_name (symlink)"
+                sudo ln -s "$conf_file" "$target"
+            fi
+        done
+        
+        log_info "✓ Xorg configs symlinked"
+    fi
+else
+    log_warn "  Xorg config source not found (skipping)"
 fi
 
 # === Make all shell scripts executable ===
