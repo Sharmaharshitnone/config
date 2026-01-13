@@ -16,8 +16,8 @@ log_info "System Recovery Mode - Installing Arch Linux packages"
 log_info "Syncing package database..."
 sudo pacman -Sy --noconfirm &>/dev/null || log_warn "Pacman sync failed"
 
-# PACMAN PACKAGES (Official Repositories) - 113 packages
-log_info "Installing official packages via pacman (113 packages)..."
+# PACMAN PACKAGES (Official Repositories) - 111 packages
+log_info "Installing official packages via pacman (111 packages)..."
 sudo pacman -S --needed --noconfirm \
   7zip act adw-gtk-theme alsa-utils android-tools android-udev \
   base base-devel bat bc bemenu bemenu-wayland blueman bluez bluez-utils \
@@ -29,18 +29,18 @@ sudo pacman -S --needed --noconfirm \
   lazydocker lazygit lib32-gamemode lib32-nvidia-utils lib32-vulkan-icd-loader \
   libva-nvidia-driver linux linux-firmware linux-headers lldb luarocks ly lynx \
   maim mako man-db mat2 materia-gtk-theme mediainfo mold mpc mpd mpd-mpris mpv \
-  neovim network-manager-applet networkmanager nordic-theme noto-fonts \
-  noto-fonts-cjk noto-fonts-emoji noto-fonts-extra nsxiv nvidia-prime nvtop \
+  neovim network-manager-applet networkmanager noto-fonts \
+  noto-fonts-cjk noto-fonts-emoji noto-fonts-extra nsxiv nvidia-open-dkms nvidia-prime nvtop \
   obs-studio opendoas openrgb pacman-contrib pandoc-cli papirus-icon-theme \
-  parallel pass pavucontrol peaclock picard picom pipewire pipewire-alsa \
+  parallel pass pavucontrol picard picom clipmenu pipewire pipewire-alsa \
   pipewire-pulse polkit-gnome python-i3ipc python-pipx python-setuptools qt6ct \
   ranger rclone redshift reflector ripgrep rmpc rnote rtkit rust sbctl sheldon \
-  simple-mtpfs slurp smartmontools speech-dispatcher stow sway swaybg task \
+  slurp smartmontools speech-dispatcher stow sway swaybg task \
   telegram-desktop thermald thunar timew tmux ttf-dejavu ttf-jetbrains-mono-nerd \
   ttf-liberation ttf-nerd-fonts-symbols-mono tumbler udiskie ufw unclutter \
   usbutils valgrind virtualbox virtualbox-host-modules-arch vit vlc vulkan-intel \
   waybar wget wireless_tools xclip xdg-utils xdotool xorg-xev xorg-xinit \
-  xorg-xinput xorg-xrandr xorg-xwininfo xss-lock xwallpaper yay yazi yt-dlp \
+  xorg-xinput xorg-xrandr xorg-xwininfo xss-lock xwallpaper yazi yt-dlp \
   zathura zathura-cb zathura-pdf-poppler zeal zig zoxide zram-generator zsh
 
 if [[ $? -eq 0 ]]; then
@@ -49,13 +49,13 @@ else
     log_warn "Some pacman packages may have failed"
 fi
 
-# YAY PACKAGES (AUR Only) - 17 packages
-log_info "Installing AUR packages via yay (17 packages)..."
+# YAY PACKAGES (AUR Only) - 15 packages
+log_info "Installing AUR packages via yay (15 packages)..."
 yay -S --needed --noconfirm \
   activitywatch-bin antigravity-bin auto-cpufreq bibata-cursor-theme-bin \
-  cargo-lambda-bin cloudflare-warp-bin clipmenu envycontrol fnm \
-  google-chrome jetbrains-toolbox nvidia-open-dkms piper-tts tdl-bin \
-  ufw-docker visual-studio-code-bin
+  cargo-lambda-bin cloudflare-warp-bin envycontrol fnm \
+  google-chrome jetbrains-toolbox piper-tts tdl-bin \
+  ufw-docker visual-studio-code-bin nordic-theme peaclock simple-mtpfs 
 
 if [[ $? -eq 0 ]]; then
     log_info "✓ AUR packages installed successfully"
