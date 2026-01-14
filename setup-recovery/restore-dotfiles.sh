@@ -51,6 +51,7 @@ CONFIG_DIRS=(
     "gtk-4.0"
     "mpd"
     "wallust"
+    "speech-dispatcher"
 )
 
 log_info "Creating symlinks for config directories..."
@@ -222,6 +223,67 @@ if [[ -d "$USER_SERVICES_DIR" ]]; then
     log_info "  Run: systemctl --user daemon-reload"
 else
     log_warn "  User systemd services directory not found (skipping)"
+fi
+
+# === SYSTEM CONFIG: SPEECH-DISPATCHER ===
+SPEECHD_CONF_SOURCE="$PARENT_CONFIG_DIR/speech-dispatcher"
+SPEECHD_CONF_TARGET="/etc/speech-dispatcher"
+
+if [[ -d "$SPEECHD_CONF_SOURCE" ]]; then
+    # Check if we can write to /etc/speech-dispatcher (requires sudo)
+    if [[ ! -w "$SPEECHD_CONF_TARGET" ]]; then
+        log_warn "⚠ /etc/speech-dispatcher is not writable (requires sudo)"
+        log_warn "  Run: sudo restore-dotfiles.sh (to install Speech Dispatcher system configs)"
+    else
+        log_info "Creating symlinks for Speech Dispatcher system configs..."
+        mkdir -p "$SPEECHD_CONF_TARGET"
+        
+        # Symlink speechd.conf if it exists in our config
+        if [[ -f "$PARENT_CONFIG_DIR/speechd.conf" ]]; then
+            target="$SPEECHD_CONF_TARGET/speechd.conf"
+            
+            # Safety: Check if already correctly linked
+            if [[ -e "$target" ]]; then
+                if [[ "$(readlink -f "$target")" == "$PARENT_CONFIG_DIR/speechd.conf" ]]; then
+                    log_info "  ✓ speechd.conf is already correctly linked"
+                else
+                    # Wrong link or real file. Back it up.
+                    BACKUP_NAME="${target}.backup_$(date +%Y%m%d_%H%M%S)"
+                    log_warn "  ! Existing config found. Backing up to $BACKUP_NAME"
+                    sudo mv "$target" "$BACKUP_NAME"
+                    sudo ln -s "$PARENT_CONFIG_DIR/speechd.conf" "$target"
+                    log_info "  → $SPEECHD_CONF_TARGET/speechd.conf (symlink)"
+                fi
+            else
+                sudo ln -s "$PARENT_CONFIG_DIR/speechd.conf" "$target"
+                log_info "  → $SPEECHD_CONF_TARGET/speechd.conf (symlink)"
+            fi
+        fi
+        
+        # Symlink modules directory
+        if [[ -d "$SPEECHD_CONF_SOURCE/modules" ]]; then
+            modules_target="$SPEECHD_CONF_TARGET/modules"
+            
+            if [[ -e "$modules_target" ]]; then
+                if [[ "$(readlink -f "$modules_target")" == "$SPEECHD_CONF_SOURCE/modules" ]]; then
+                    log_info "  ✓ modules directory is already correctly linked"
+                else
+                    BACKUP_NAME="${modules_target}.backup_$(date +%Y%m%d_%H%M%S)"
+                    log_warn "  ! Existing modules found. Backing up to $BACKUP_NAME"
+                    sudo mv "$modules_target" "$BACKUP_NAME"
+                    sudo ln -s "$SPEECHD_CONF_SOURCE/modules" "$modules_target"
+                    log_info "  → $SPEECHD_CONF_TARGET/modules (symlink)"
+                fi
+            else
+                sudo ln -s "$SPEECHD_CONF_SOURCE/modules" "$modules_target"
+                log_info "  → $SPEECHD_CONF_TARGET/modules (symlink)"
+            fi
+        fi
+        
+        log_info "✓ Speech Dispatcher system configs symlinked"
+    fi
+else
+    log_warn "  Speech Dispatcher source not found (skipping)"
 fi
 
 # === XORG CONFIGURATION (System-wide - /etc/X11/xorg.conf.d) ===

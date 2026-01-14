@@ -208,6 +208,22 @@ log_info "=================================================="
 log_info "Optimize for i7-13620H: systemd initramfs + lz4 compression"
 log_info "Target: < 4 seconds total boot time"
 log_info ""
+read -p "Download Piper TTS voice model? (y/n) " -n 1 -r
+echo
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [[ -x "$SCRIPT_DIR/download-piper-voice.sh" ]]; then
+        log_info "Downloading Piper voice..."
+        "$SCRIPT_DIR/download-piper-voice.sh"
+        log_info "✓ Piper voice download complete!"
+    else
+        log_warn "download-piper-voice.sh not found or not executable (skipping)"
+    fi
+else
+    log_info "Skipping Piper voice download"
+fi
+
+log_info ""
 read -p "Optimize boot time? (y/n) " -n 1 -r
 echo
 

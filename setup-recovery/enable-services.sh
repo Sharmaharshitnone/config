@@ -86,7 +86,29 @@ done
 
 echo ""
 echo "========================================================"
-if [ $ENABLED_COUNT -gt 0 ]; then
+echo "   Optional: Enable System Speech-Dispatcher Daemon"
+echo "========================================================"
+echo ""
+log_info "Speech-Dispatcher: Text-to-Speech synthesis for the system"
+echo -n "Enable speech-dispatcher system service? (y/n) "
+read -r -n 1 REPLY
+echo
+
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if sudo systemctl enable --now speech-dispatcher 2>/dev/null; then
+        log_info "✓ System speech-dispatcher enabled and started"
+        log_info "  Check status: sudo systemctl status speech-dispatcher"
+        log_info "  Test TTS: spd-say 'Hello world'"
+    else
+        log_warn "Could not enable speech-dispatcher (may need manual setup)"
+    fi
+else
+    log_info "Skipped speech-dispatcher"
+fi
+
+echo ""
+echo "========================================================"
+if [ $EqNABLED_COUNT -gt 0 ]; then
     log_info "✓ Enabled $ENABLED_COUNT user service(s)"
 else
     log_warn "No services were enabled"
