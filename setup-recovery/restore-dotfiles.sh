@@ -144,34 +144,43 @@ BIN_SOURCE="$PARENT_CONFIG_DIR/bin"
 BIN_TARGET="$HOME/.local/bin"
 
 if [[ -d "$BIN_SOURCE" ]]; then
-    log_info "Creating symlinks for bin scripts..."
+    log_info "Creating symlinks for bin contents..."
     mkdir -p "$BIN_TARGET"
     
-    # Symlink individual executables from bin/ to ~/.local/bin
-    for script in "$BIN_SOURCE"/*; do
-        if [[ -f "$script" && -x "$script" ]]; then
-            script_name=$(basename "$script")
-            target="$BIN_TARGET/$script_name"
-            
-            # Safety: Check if already correctly linked
-            if [[ -e "$target" ]]; then
-                if [[ "$(readlink -f "$target")" == "$script" ]]; then
-                    log_info "  ✓ $script_name is already correctly linked"
-                    continue
-                fi
-                
-                # Wrong link or real file. Back it up.
-                BACKUP_NAME="${target}.backup_$(date +%Y%m%d_%H%M%S)"
-                log_warn "  ! Existing script found. Backing up to $BACKUP_NAME"
-                mv "$target" "$BACKUP_NAME"
+    # Symlink ALL items (files and directories) from bin/ to ~/.local/bin
+    for item in "$BIN_SOURCE"/*; do
+        item_name=$(basename "$item")
+        target="$BIN_TARGET/$item_name"
+        
+        # Skip if item doesn't exist
+        [[ -e "$item" ]] || continue
+        
+        # Safety: Check if already correctly linked
+        if [[ -e "$target" ]]; then
+            if [[ "$(readlink -f "$target")" == "$item" ]]; then
+                log_info "  ✓ $item_name is already correctly linked"
+                continue
             fi
             
-            log_info "  → $BIN_TARGET/$script_name (symlink)"
-            ln -s "$script" "$target"
+            # Wrong link or real item. Back it up.
+            BACKUP_NAME="${target}.backup_$(date +%Y%m%d_%H%M%S)"
+            log_warn "  ! Existing item found. Backing up to $BACKUP_NAME"
+            mv "$target" "$BACKUP_NAME"
         fi
+        
+        # Create symlink for files or directories
+        if [[ -d "$item" ]]; then
+            log_info "  → $BIN_TARGET/$item_name/ (symlink)"
+        else
+            log_info "  → $BIN_TARGET/$item_name (symlink)"
+        fi
+        ln -s "$item" "$target"
+        
+        # Make executable if it's a file
+        [[ -f "$item" ]] && chmod +x "$item" 2>/dev/null || true
     done
     
-    log_info "✓ Bin scripts symlinked to ~/.local/bin"
+    log_info "✓ Bin contents symlinked to ~/.local/bin"
 else
     log_warn "  Bin directory not found (skipping)"
 fi
