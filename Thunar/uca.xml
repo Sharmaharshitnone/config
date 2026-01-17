@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>kitty</icon>
+	<name>Terminal</name>
+	<submenu></submenu>
+	<unique-id>1758036748807887-1</unique-id>
+	<command>kitty --working-directory %f</command>
+	<description>Open in terminal</description>
+	<range></range>
+	<patterns>*</patterns>
+	<startup-notify/>
+	<directories/>
+</action>
+<action>
+	<icon></icon>
+	<name>open with glow</name>
+	<submenu></submenu>
+	<unique-id>1762709130650106-1</unique-id>
+	<command>alacritty -e sh -c &quot;glow %f; exec sh&quot;</command>
+	<description> Opens a Markdown file in the terminal with Glow</description>
+	<range>*</range>
+	<patterns>*.md;*.MD</patterns>
+	<text-files/>
+</action>
+<action>
+	<icon>kitty</icon>
+	<name>open(TERM)</name>
+	<submenu></submenu>
+	<unique-id>1768318402799089-1</unique-id>
+	<command>kitty nvim %f</command>
+	<description></description>
+	<range>*</range>
+	<patterns>*</patterns>
+</action>
+</actions>

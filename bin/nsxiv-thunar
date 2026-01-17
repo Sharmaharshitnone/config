@@ -1,32 +1,66 @@
-#!/bin/bash
-# nsxiv-thunar: Opens the folder of the clicked file, focused on that file.
+#!/bin/sh
+# Wrapper to open files in nsxiv. If a single file is passed, rotate the
+# directory so that file is first (using rotdir) and pipe into nsxiv. If
+# multiple files are passed, open them directly.
 
-# 1. Get absolute path and details
-TARGET_FILE=$(realpath "$1")
-DIR=$(dirname "$TARGET_FILE")
-FILENAME=$(basename "$TARGET_FILE")
+set -eu
 
-# 2. Build sorted list of image files (matching nsxiv's behavior)
-# nsxiv sorts alphabetically, so we use simple ls with LC_ALL=C for consistent sorting
-mapfile -t images < <(
-    cd "$DIR" && \
-    /usr/bin/find . -maxdepth 1 -type f \( \
-        -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o \
-        -iname "*.gif" -o -iname "*.webp" -o -iname "*.tiff" -o \
-        -iname "*.tif" -o -iname "*.bmp" -o -iname "*.ico" -o \
-        -iname "*.svg" \) -printf '%f\n' | LC_ALL=C sort
-)
+ROTDIR="$HOME/.local/bin/rotdir"
+NSXIV="$(command -v nsxiv || true)"
 
-# 3. Find the index of our target file (1-indexed)
-COUNT=1
-for i in "${!images[@]}"; do
-    if [[ "${images[$i]}" == "$FILENAME" ]]; then
-        COUNT=$((i + 1))
-        break
-    fi
-done
+if [ -z "$NSXIV" ]; then
+  echo "nsxiv not found in PATH" >&2
+  exit 1
+fi
 
-# 4. Launch nsxiv
-# -t: Thumbnail mode
-# -n: Start at index number $COUNT
-exec nsxiv -t -n "$COUNT" "$DIR"
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 <file> [file2 ...]" >&2
+  exit 1
+fi
+
+if [ $# -eq 1 ]; then
+  file="$1"
+  # Get directory of the file to find image files in same directory
+  dir=$(dirname "$file")
+  
+  # Use find to get all image files in the directory, then use rotdir logic
+  # Get all image files in directory, then rotate the list starting from our file
+  cd "$dir" || exit 1
+  basename_file=$(basename "$file")
+  
+  # Find all image files in current directory
+  image_files=$(find . -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" -o -iname "*.bmp" -o -iname "*.webp" -o -iname "*.tiff" -o -iname "*.tif" \) -printf '%P\n' | sort)
+  
+  if [ -z "$image_files" ]; then
+    echo "No image files found in directory" >&2
+    exit 1
+  fi
+  
+  # Rotate the list to start at our file
+  rotated=$(printf '%s\n' "$image_files" | awk -v BASE="$basename_file" '
+  BEGIN { buf=""; started=0 }
+  {
+    if (started) {
+      print
+    } else {
+      if ($0 == BASE) {
+        started=1; print
+      } else {
+        buf = buf (buf ? "\n" : "") $0
+      }
+    }
+  }
+  END {
+    if (!started) {
+      if (buf != "") print buf
+    } else if (buf != "") {
+      print buf
+    }
+  }')
+  
+  # Convert relative paths to absolute paths and pipe to nsxiv
+  printf '%s\n' "$rotated" | sed "s|^|$dir/|" | "$NSXIV" -i -
+else
+  # multiple files: open them directly
+  exec "$NSXIV" "$@"
+fi

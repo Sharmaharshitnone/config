@@ -140,6 +140,14 @@ And more...           (14 total directories)
 ~/.local/share/systemd/user/gdrive.service    → symlinked
 ```
 
+**System-level Symlinks (requires sudo):**
+```
+/etc/X11/xorg.conf.d/00-keyboard.conf  → ~/config/xorg.conf.d/
+/etc/X11/xorg.conf.d/30-touchpad.conf  → ~/config/xorg.conf.d/
+/etc/speech-dispatcher/speechd.conf    → ~/config/speech-dispatcher/
+/usr/bin/xterm                         → /usr/bin/kitty (xterm compatibility)
+```
+
 ### Optional: Performance Optimization
 
 **When prompted:** "Enable performance optimization? (y/n)"

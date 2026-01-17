@@ -62,41 +62,21 @@ start_x11() {
   # Get default source (microphone)
   MIC_INPUT=$(pactl get-default-source 2>/dev/null || echo "default")
 
-  # Hardware Accelerated Full Screen Recording (VAAPI)
-  # Uses Intel QuickSync (i7-13620H iGPU) for zero-CPU encoding
-  # -vaapi_device: Hardware encoder (Intel/AMD render node)
-  # -vf format=nv12,hwupload: Convert to GPU format and upload to VRAM
-  # -c:v h264_vaapi: Hardware H.264 encoder (replaces CPU-bound libx264)
-  # -qp 24: Constant quality for VAAPI (18-28 range, lower=better)
-  # -framerate 60: Hardware encoder handles 60fps without CPU penalty
-  LOGFILE="/tmp/ffmpeg-screen-mic-${TS}.log"
-  ffmpeg \
-    -f x11grab \
-    -video_size "$RES" \
-    -framerate 60 \
-    -i "${DISPLAY:-:0.0}" \
+  # Start ffmpeg in background (capture system audio + microphone, mix them)
+  # The amix filter combines both audio streams
+  # [0:a] = system audio monitor, [1:a] = microphone
+  ffmpeg -video_size "$RES" -framerate 30 -f x11grab -i "${DISPLAY:-:0.0}" \
     -f pulse -i "$SYSTEM_AUDIO" \
     -f pulse -i "$MIC_INPUT" \
-    -filter_complex "[1:a][2:a]amix=inputs=2:duration=longest[aout]" \
+    -filter_complex "[1:a][2:a]amix=inputs=2:duration=longest:dropout_transition=2[aout]" \
     -map 0:v -map "[aout]" \
-    -vaapi_device /dev/dri/renderD128 \
-    -vf "format=nv12,hwupload" \
-    -c:v h264_vaapi -qp 20 \
+    -c:v libx264 -preset veryfast -crf 18 \
     -c:a aac -b:a 192k \
-    "$OUTFILE" >"$LOGFILE" 2>&1 &
+    "$OUTFILE" >/dev/null 2>&1 &
   PID=$!
-  
-  # Validate ffmpeg started successfully
-  sleep 0.5
-  if ! kill -0 "$PID" 2>/dev/null; then
-    notify "Failed to start recording. Check $LOGFILE"
-    cat "$LOGFILE" >&2
-    return 1
-  fi
-  
   # store PID and outfile so stop can read the real output path
   printf "%d:%s" "$PID" "$OUTFILE" > "$PIDFILE"
-  notify "Recording started (system + mic @ 60fps): $RES"
+  notify "Recording started (system + mic): $OUTFILE"
 }
 
 stop_record() {
@@ -109,10 +89,8 @@ stop_record() {
       sleep 1
     fi
     rm -f "$PIDFILE"
-    
-    if [ -n "$OUTPATH" ] && [ -f "$OUTPATH" ]; then
-      SIZE=$(du -h "$OUTPATH" | cut -f1)
-      notify "Recording stopped: $OUTPATH ($SIZE)"
+    if [ -n "$OUTPATH" ]; then
+      notify "Recording stopped: $OUTPATH"
     else
       notify "Recording stopped"
     fi

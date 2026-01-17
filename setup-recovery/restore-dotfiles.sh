@@ -52,6 +52,7 @@ CONFIG_DIRS=(
     "mpd"
     "wallust"
     "speech-dispatcher"
+    "Thunar"
 )
 
 log_info "Creating symlinks for config directories..."
@@ -186,6 +187,41 @@ if command -v zsh &>/dev/null; then
     fi
 else
     log_warn "zsh not found in PATH (skipping shell change)"
+fi
+
+# === SHELDON (Zsh Plugin Manager) ===
+if command -v sheldon &>/dev/null; then
+    log_info "Installing Sheldon plugins..."
+    
+    # Set config directory to match .zshrc setup
+    SHELDON_CONFIG="$CONFIG_HOME/zsh/plugins.toml"
+    
+    if [[ -f "$SHELDON_CONFIG" ]]; then
+        log_info "  Found plugins.toml at $SHELDON_CONFIG"
+        
+        # Lock and install plugins (creates lockfile + downloads plugins)
+        # Use SHELDON_CONFIG_DIR to match the .zshrc eval line
+        if SHELDON_CONFIG_DIR="$CONFIG_HOME/zsh" sheldon lock --update 2>&1 | tee /tmp/sheldon-install.log; then
+            log_info "✓ Sheldon plugins installed successfully"
+            
+            # Show what was installed
+            PLUGIN_COUNT=$(grep -c "^\[plugins\." "$SHELDON_CONFIG" 2>/dev/null || echo "0")
+            log_info "  Installed $PLUGIN_COUNT plugin(s) from config"
+            
+            # Check lockfile was created
+            LOCKFILE="$HOME/.local/share/sheldon/plugins.lock"
+            if [[ -f "$LOCKFILE" ]]; then
+                log_info "  ✓ Lockfile generated: $LOCKFILE"
+            fi
+        else
+            log_warn "Sheldon plugin installation encountered issues (check /tmp/sheldon-install.log)"
+        fi
+    else
+        log_warn "  plugins.toml not found at $SHELDON_CONFIG"
+        log_warn "  Sheldon will install plugins on first shell launch"
+    fi
+else
+    log_warn "sheldon not installed (plugins will auto-install on first zsh launch)"
 fi
 
 # === USER SYSTEMD SERVICES ===
@@ -329,6 +365,42 @@ else
     log_warn "  Xorg config source not found (skipping)"
 fi
 
+# === KITTY → XTERM SYMLINK (System-wide - /usr/bin) ===
+log_info "Creating Kitty→xterm symlink..."
+
+# Check if kitty is installed
+if command -v kitty &>/dev/null; then
+    KITTY_PATH="$(command -v kitty)"
+    XTERM_LINK="/usr/bin/xterm"
+    
+    # Check if /usr/bin/xterm already points to kitty
+    if [[ -L "$XTERM_LINK" ]] && [[ "$(readlink -f "$XTERM_LINK")" == "$KITTY_PATH" ]]; then
+        log_info "  ✓ /usr/bin/xterm already points to kitty"
+    else
+        # Check if xterm package is installed
+        if pacman -Q xterm &>/dev/null; then
+            log_info "  → Removing xterm package via pacman..."
+            sudo pacman -Rns xterm --noconfirm || {
+                log_warn "Failed to remove xterm package (may have dependencies)"
+                log_warn "Run manually: sudo pacman -Rns xterm"
+                log_warn "Or force: sudo pacman -Rdd xterm --noconfirm"
+            }
+        fi
+        
+        # Remove any remaining xterm binary/symlink
+        if [[ -e "$XTERM_LINK" ]]; then
+            sudo rm -f "$XTERM_LINK"
+            log_info "  → Removed existing /usr/bin/xterm"
+        fi
+        
+        # Create the symlink
+        sudo ln -sf "$KITTY_PATH" "$XTERM_LINK"
+        log_info "  ✓ Created symlink: /usr/bin/xterm → $KITTY_PATH"
+    fi
+else
+    log_warn "  ✗ kitty not installed (cannot create xterm symlink)"
+fi
+
 # === Make all shell scripts executable ===
 log_info "Making all shell scripts executable..."
 find "$PARENT_CONFIG_DIR" -type f \( -name "*.sh" -o -name "*.py" \) 2>/dev/null | while read -r script; do
@@ -349,6 +421,10 @@ log_info "  ls -la $CONFIG_HOME/"
 log_info "  ls -la $HOME/.tmux.conf"
 log_info ""
 log_info "Next steps:"
-log_info "  1. Reload shell: source \$HOME/.zshrc"
-log_info "  2. Test: nvim, kitty, i3 keybinds, etc."
-log_info "  3. If needed, restart i3/sway: \$mod+Shift+r"
+log_info "  1. Reload shell: exec zsh (or source \$HOME/.zshrc)"
+log_info "  2. Verify plugins loaded: sheldon source (or echo \$ZSH_HIGHLIGHT_STYLES)"
+log_info "  3. Test: nvim, kitty, i3 keybinds, etc."
+log_info "  4. If needed, restart i3/sway: \$mod+Shift+r"
+log_info ""
+log_info "Plugin updates (future):"
+log_info "  SHELDON_CONFIG_DIR=\$ZDOTDIR sheldon lock --update"

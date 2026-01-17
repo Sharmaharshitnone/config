@@ -12,7 +12,8 @@ alias cp='cp -i'
 alias mv='mv -i'
 alias rm='rm -I'
 alias e='nvim'
-
+# --- Tmux Sessionizer ---
+alias ts='tmux-sessionizer'
 # --- 2. NAVIGATION ---
 alias ..='cd ..'
 alias ...='cd ../..'

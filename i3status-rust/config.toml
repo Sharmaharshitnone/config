@@ -110,11 +110,12 @@ critical_mem = 95
 # 7. VOLUME (Speaker)
 [[block]]
 block = "sound"
+driver = "pulseaudio"
 format = "<span weight='bold' size='x-large'>$icon</span> <span rise='1000'>$volume</span>"
 show_volume_when_muted = true
 [[block.click]]
 button = "left"
-cmd = "pavucontrol"
+cmd = "i3-msg exec pavucontrol"
 [[block.click]]
 button = "right"
 action = "toggle_mute"
@@ -122,6 +123,7 @@ action = "toggle_mute"
 # 8. MIC (Microphone)
 [[block]]
 block = "sound"
+driver = "pulseaudio"
 device_kind = "source"
 format = "<span weight='bold' size='x-large'>$icon</span> <span rise='1000'>$volume</span>"
 show_volume_when_muted = true
@@ -131,13 +133,6 @@ cmd = "pavucontrol"
 [[block.click]]
 button = "right"
 action = "toggle_mute"
-[[block.click]]
-button = "left"
-cmd = "pavucontrol"
-[[block.click]]
-button = "right"
-action = "toggle_mute"
-update = true
 
 # 5b. BACKLIGHT (Brightness)
 [[block]]

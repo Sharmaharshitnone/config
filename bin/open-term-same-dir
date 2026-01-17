@@ -1,49 +1,108 @@
-#!/bin/bash
-# open-term-same-dir - Opens kitty terminal in the same directory as the currently focused window
+#!/bin/sh
+# Open a terminal window in the same directory as the currently active window.
+# Works in X11/i3. Requires xprop, pstree, ps, readlink and a terminal emulator.
 
-# Get the focused window's PID using xdotool
-focused_window=$(xdotool getwindowfocus)
-focused_pid=$(xdotool getwindowpid "$focused_window" 2>/dev/null)
+set -eu
 
-# Function to find the working directory of a process
-get_pwd_of_process() {
-    local pid=$1
-    local cwd
-    
-    # Get all descendant processes (shells, programs running in terminal, etc.)
-    # Use pstree to get the full process tree
-    local all_pids=$(pstree -p "$pid" 2>/dev/null | grep -oP '\(\K[0-9]+')
-    
-    # Try each process, skipping HOME directory (terminal emulators default to HOME)
-    for proc_pid in $all_pids; do
-        cwd=$(readlink "/proc/$proc_pid/cwd" 2>/dev/null)
-        # Return first non-HOME directory we find
-        if [[ -d "$cwd" && "$cwd" != "$HOME" ]]; then
-            echo "$cwd"
-            return 0
-        fi
-    done
-    
-    # If all processes are in HOME, just return HOME
-    # (Check main PID again as fallback)
-    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null)
-    if [[ -d "$cwd" ]]; then
-        echo "$cwd"
-        return 0
+# Pick a terminal if $TERMINAL is not set
+: "${TERMINAL:=}"
+if [ -z "${TERMINAL}" ]; then
+  for t in alacritty foot kitty xterm urxvt gnome-terminal xfce4-terminal konsole; do
+    if command -v "$t" >/dev/null 2>&1; then
+      TERMINAL="$t"
+      break
     fi
-    
-    return 1
-}
-
-# Get the working directory
-if [[ -n "$focused_pid" ]]; then
-    target_dir=$(get_pwd_of_process "$focused_pid")
+  done
 fi
 
-# Fallback to home directory if we couldn't determine the directory
-if [[ -z "$target_dir" || ! -d "$target_dir" ]]; then
-    target_dir="$HOME"
+if [ -z "${TERMINAL}" ]; then
+  echo "No terminal emulator found. Install one (alacritty, foot, xterm, etc.) or set TERMINAL env var." >&2
+  exit 1
 fi
 
-# Launch kitty in the target directory
-exec kitty --directory="$target_dir"
+if ! command -v xprop >/dev/null 2>&1; then
+  echo "xprop is required." >&2
+  exit 1
+fi
+
+# Get the active window id
+win_id=$(xprop -root | awk -F' ' '/_NET_ACTIVE_WINDOW/ {print $NF}')
+if [ -z "$win_id" ] || [ "$win_id" = "0x0" ]; then
+  echo "No active window found." >&2
+  exec "$TERMINAL"
+fi
+
+# Resolve PID of the active window. xprop may print in hex (0x####)
+win_pid=$(xprop -id "$win_id" 2>/dev/null | awk -F'= ' '/_NET_WM_PID/ {print $2}' || true)
+
+cwd=""
+if [ -n "$win_pid" ]; then
+  # Get process tree PIDs (requires pstree)
+  if command -v pstree >/dev/null 2>&1; then
+    PIDlist=$(pstree -lpATna "$win_pid" 2>/dev/null | sed -En 's/.*,([0-9]+).*/\1/p' | tac || true)
+  else
+    # Fallback: include the window PID only
+    PIDlist="$win_pid"
+  fi
+
+  for PID in $PIDlist; do
+    # ensure PID is numeric
+    case "$PID" in
+      ''|*[!0-9]*) continue ;;
+    esac
+    # cmdline and process group leader
+    if ! cmdline=$(ps -o args= -p "$PID" 2>/dev/null || true); then
+      continue
+    fi
+    pgleader_pid=$(ps -o pgid= -p "$PID" 2>/dev/null | tr -d ' ' || true)
+    process_group_leader=$(ps -o comm= -p "$pgleader_pid" 2>/dev/null || true)
+
+    # Skip lf server and similar
+    case "$cmdline" in
+      'lf -server') continue ;;
+      "${SHELL##*/}"|'lf'|'lf '*) break ;;
+    esac
+
+    # Resolve cwd symlink
+    if [ -d "/proc/$PID/cwd" ]; then
+      cwd=$(readlink "/proc/$PID/cwd" 2>/dev/null || true)
+    fi
+    # Ignore git processes showing repo root or invalid cwd
+    if [ "$process_group_leader" = 'git' ] || [ -z "$cwd" ] || [ ! -d "$cwd" ]; then
+      cwd=""
+      continue
+    fi
+    # Ignore ~ or / as they are not specific
+    if [ "$cwd" = "$HOME" ] || [ "$cwd" = '/' ]; then
+      cwd=""
+      continue
+    fi
+    # Found a usable cwd
+    break
+  done
+fi
+
+# If no cwd found, open terminal normally
+if [ -z "$cwd" ] || [ "$cwd" = "$PWD" ] || [ ! -d "$cwd" ]; then
+  exec "$TERMINAL"
+fi
+
+# Open terminal in the directory. Different terminals accept different options
+case "$TERMINAL" in
+  alacritty|kitty|xterm|urxvt|foot)
+    exec "$TERMINAL" --working-directory "$cwd" >/dev/null 2>&1 &
+    ;;
+  gnome-terminal)
+    exec gnome-terminal --working-directory="$cwd" >/dev/null 2>&1 &
+    ;;
+  xfce4-terminal)
+    exec xfce4-terminal --working-directory="$cwd" >/dev/null 2>&1 &
+    ;;
+  konsole)
+    exec konsole --workdir "$cwd" >/dev/null 2>&1 &
+    ;;
+  *)
+    # Fallback: cd then run terminal
+    (cd "$cwd" && exec "$TERMINAL") >/dev/null 2>&1 &
+    ;;
+esac
