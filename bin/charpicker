@@ -1,5 +1,5 @@
 #!/bin/sh
-EMOJI_FILE="$HOME/work/config/bin/chars/emoji"
+EMOJI_FILE="$HOME/.local/bin/chars/emoji"
 
 # Select with fzf, exit if empty or cancelled
 chosen=$(fzf < "$EMOJI_FILE" | sed "s/ .*//") || exit
