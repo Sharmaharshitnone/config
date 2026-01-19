@@ -5,4 +5,4 @@ if pgrep -x "picom" > /dev/null; then
 else
     picom -b
 fi
-pkill -RTMIN+12 i3status-rs
+pkill -RTMIN+13 i3status-rs

@@ -8,37 +8,6 @@ overrides = { idle_bg = "none", idle_fg = "#ebdbb2", info_bg = "none", info_fg =
 [icons]
 icons = "material-nf"
 
-# Timer
-[[block]]
-block = "custom"
-interval = 1
-command = "~/.local/bin/i3-timer status"
-
-[[block.click]]
-button = "left"
-cmd = "~/.local/bin/i3-timer menu"
-
-[[block.click]]
-button = "right"
-cmd = "~/.local/bin/i3-timer reset"
-update = true
-
-# 6b. warp vpn
-[[block]]
-block = "custom"
-command = """
-    if warp-cli status 2>/dev/null | grep -qi 'connected'; then
-        echo '<span size=\"x-large\">󰀸</span>'
-    else
-        echo '<span size=\"large\"></span>'
-    fi
-"""
-interval = 5
-[[block.click]]
-button = "left"
-cmd = "kitty -e zsh -ic warp"
-
-
 # 11c. TASK (TimeWarrior)
 [[block]]
 block = "custom"
@@ -65,7 +34,8 @@ cmd = "tmux select-window -t scratchpad:vit 2>/dev/null || tmux new-window -t sc
 [[block]]
 block = "time"
 interval = 60
-format = "<span size='large' weight='bold' ></span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
+# format = "<span size='large' weight='bold' ></span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
+format = "<span size='large' weight='bold' >$icon</span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
 [block.theme_overrides]
 [[block.click]]
 button = "left"
@@ -76,6 +46,7 @@ cmd = "tmux select-window -t scratchpad:peaclock 2>/dev/null || tmux new-window 
 block = "focused_window"
 format = " $title.str(max_w:30) |"
 [block.theme_overrides]
+
 
 # 2b. UPTIME
 [[block]]
@@ -137,7 +108,8 @@ action = "toggle_mute"
 # 5b. BACKLIGHT (Brightness)
 [[block]]
 block = "backlight"
-format = "<span size='large'>󰃠</span> <span rise='1000'>$brightness</span>"
+cycle = [10, 30, 60, 100]  # Left-click to jump between levels
+format = "<span size='large'>$icon</span> <span rise='1000'>$brightness</span>"
 missing_format = ""
 [block.theme_overrides]
 
@@ -146,29 +118,26 @@ missing_format = ""
 block = "custom"
 command = "~/.config/i3/scripts/timer_control.sh read"
 interval = 1
+signal = 11
 json = true
 [[block.click]]
 button = "left"
-cmd = "~/.config/i3/scripts/timer_control.sh toggle" 
+cmd = "~/.config/i3/scripts/timer_control.sh toggle && pkill -RTMIN+11 i3status-rs" 
 [[block.click]]
 button = "right"
-cmd = "~/.config/i3/scripts/timer_control.sh reset" 
+cmd = "~/.config/i3/scripts/timer_control.sh reset && pkill -RTMIN+11 i3status-rs" 
 update = true
-
-# 5c. REDSHIFT
-[[block]]
-block = "custom"
-command = "~/.config/i3/scripts/redshift-status.sh"
-interval = 2
-format = "<span size='large'></span> <span rise='1000'>$text</span>"
-[[block.click]]
-button = "left"
-cmd = "~/.config/i3/scripts/toggle-redshift.sh"
 
 # 5d. MUSIC
 [[block]]
 block = "music"
-format = " $icon {$combo.str(max_w:25,rot_interval:0.5) $play |}"
+format = "$icon {$combo.str(max_w:25,rot_interval:0.5) $play|}"
+# [[block.click]]
+# button = "up"
+# cmd = "brightnessctl set +5%"
+# [[block.click]]
+# button = "down"
+# cmd = "brightnessctl set 5%-"
 
 [[block.click]]
 button = "left"
@@ -184,46 +153,60 @@ action = "prev"
 [[block]]
 block = "custom"
 command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor | sed -e 's/performance/⚡ Perf/' -e 's/powersave/🌱 Save/'"
-interval = 5
+interval = "once"
+signal = 12
 format = "$text"
 [[block.click]]
 button = "left"
-cmd = "~/.config/i3/scripts/power-control.sh performance"
+cmd = "~/.config/i3/scripts/power-control.sh performance && pkill -RTMIN+12 i3status-rs"
 [[block.click]]
 button = "right"
-cmd = "~/.config/i3/scripts/power-control.sh powersave"
+cmd = "~/.config/i3/scripts/power-control.sh powersave && pkill -RTMIN+12 i3status-rs"
 [[block.click]]
 button = "middle"
-cmd = "~/.config/i3/scripts/power-control.sh reset"
+cmd = "~/.config/i3/scripts/power-control.sh reset && pkill -RTMIN+12 i3status-rs"
 
 # 6. BATTERY
 
 [[block]]
 block = "battery"
-format = "$icon $percentage {$time |} {$power |}"
+format = "$icon $percentage {$time|} {$power|}"
 interval = 5
 warning = 30
 critical = 15
-
 
 # 4. TEMPERATURE
 [[block]]
 block = "temperature"
 format = "<span size='large'></span><span rise='1000'> $average</span>"
+# format = "<span size='large'></span>$icon<span rise='1000'>$average</span>"
 interval = 5
 chip = "*-isa-*"
 #chip = "coretemp-isa-*"
 [block.theme_overrides]
 
+# 5c. REDSHIFT
+[[block]]
+block = "custom"
+# command = "echo ''"
+command = "~/.config/i3/scripts/redshift-status.sh"
+signal = 10
+interval = "once"
+format = "<span size='large'>$text</span>"
+[[block.click]]
+button = "left"
+cmd = "~/.config/i3/scripts/toggle-redshift.sh"
+
 # 7a. PICOM TOGGLE
 [[block]]
 block = "custom"
-command = "pgrep -x picom >/dev/null && echo '' FX || echo '' FX"
+command = "pgrep -x picom >/dev/null && echo '' || echo ''"
 format = "<span size='large'>$text</span>"
-interval = 2
+interval = "once"
+signal = 13
 [[block.click]]
 button = "left"
-cmd = "~/.config/i3/scripts/picom-toggle.sh"
+cmd = "~/.config/i3/scripts/picom-toggle.sh && pkill -RTMIN+13 i3status-rs"
 
 # 8. BACKGROUND
 [[block]]
@@ -235,6 +218,21 @@ format = "<span size='large'>$text</span>"
 button = "left"
 cmd = "~/.config/i3/scripts/bg.sh"
 
+# 6b. warp vpn
+[[block]]
+block = "custom"
+command = """
+    if warp-cli status 2>/dev/null | grep -qi 'connected'; then
+        echo ''
+    else
+        echo ''
+    fi
+"""
+format = "<span size='x-large'>$text</span>"
+interval = 5
+[[block.click]]
+button = "left"
+cmd = "kitty -e zsh -ic warp"
 
 # 10. DAILY NOTES
 [[block]]
