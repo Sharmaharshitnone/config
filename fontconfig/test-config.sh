@@ -58,7 +58,7 @@ declare -A SUBS=(
     ["Arial"]="Noto Sans"
     ["Helvetica"]="Noto Sans"
     ["Times New Roman"]="Noto Serif"
-    ["Courier New"]="JetBrainsMono"
+    ["Courier New"]="JetBrainsMono Nerd Font"
 )
 
 if command -v fc-match &> /dev/null; then
