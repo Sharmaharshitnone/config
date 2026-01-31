@@ -91,7 +91,7 @@ The `.tmux.conf` file is a **declarative configuration** that tmux parses sequen
 | Dependency | Detection Method | Impact if Missing |
 |------------|-----------------|-------------------|
 | **True Color Terminal** | `$TERM` value | Color degradation |
-| **Nerd Font** | Status bar icons | Broken glyphs (`, `) |
+| **Nerd Font** | Status bar icons | Broken glyphs (powerline symbols, folder/clock icons) |
 | **Kitty Terminal** | `KITTY_WINDOW_ID` env | Passthrough features fail |
 | **fzf** | tmux-fzf plugin | Plugin error |
 | **xclip/xsel/wl-copy** | tmux-yank | Clipboard fails |
