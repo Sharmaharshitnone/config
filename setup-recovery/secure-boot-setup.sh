@@ -128,7 +128,11 @@ echo "========================================================"
 # --- 9. Fix /boot Permissions (Remove Random Seed Warnings) ---
 log "Setting /boot permissions to remove random seed warnings..."
 sudo chown root:root /boot
-sudo chmod 700 /boot             
-sudo chown root:root /boot/loader/random-seed
-sudo chmod 600 /boot/loader/random-seed
-success "Boot permissions secured."
+sudo chmod 700 /boot
+if [[ -f /boot/loader/random-seed ]]; then
+    sudo chown root:root /boot/loader/random-seed
+    sudo chmod 600 /boot/loader/random-seed
+    success "Boot permissions secured."
+else
+    warn "Random seed file not found (normal for fresh installs)"
+fi

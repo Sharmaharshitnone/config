@@ -188,7 +188,8 @@ fi
 # === SET ZSH AS DEFAULT SHELL ===
 if command -v zsh &>/dev/null; then
     ZSH_PATH="$(command -v zsh)"
-    if ! grep -q "^$USER:.*:$ZSH_PATH" /etc/passwd; then
+    CURRENT_SHELL=$(getent passwd "$USER" | cut -d: -f7)
+    if [[ "$CURRENT_SHELL" != "$ZSH_PATH" ]]; then
         log_info "Setting zsh as default shell..."
         chsh -s "$ZSH_PATH" "$USER" || log_warn "Could not set zsh as default (may need sudo)"
     else

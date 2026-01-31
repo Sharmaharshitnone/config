@@ -108,7 +108,7 @@ fi
 
 echo ""
 echo "========================================================"
-if [ $EqNABLED_COUNT -gt 0 ]; then
+if [ $ENABLED_COUNT -gt 0 ]; then
     log_info "✓ Enabled $ENABLED_COUNT user service(s)"
 else
     log_warn "No services were enabled"

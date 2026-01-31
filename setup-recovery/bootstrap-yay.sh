@@ -200,13 +200,12 @@ else
     log_info "Skipping user service enablement"
 fi
 
-# === OPTIONAL: BOOT TIME OPTIMIZATION ===
+# === OPTIONAL: PIPER TTS VOICE MODEL ===
 log_info ""
 log_info "=================================================="
-log_info "Optional: Boot Time Optimization"
+log_info "Optional: Piper TTS Voice Model"
 log_info "=================================================="
-log_info "Optimize for i7-13620H: systemd initramfs + lz4 compression"
-log_info "Target: < 4 seconds total boot time"
+log_info "Download the en_US-lessac-medium voice model for text-to-speech"
 log_info ""
 read -p "Download Piper TTS voice model? (y/n) " -n 1 -r
 echo
@@ -223,6 +222,13 @@ else
     log_info "Skipping Piper voice download"
 fi
 
+# === OPTIONAL: BOOT TIME OPTIMIZATION ===
+log_info ""
+log_info "=================================================="
+log_info "Optional: Boot Time Optimization"
+log_info "=================================================="
+log_info "Optimize for i7-13620H: systemd initramfs + lz4 compression"
+log_info "Target: < 4 seconds total boot time"
 log_info ""
 read -p "Optimize boot time? (y/n) " -n 1 -r
 echo
