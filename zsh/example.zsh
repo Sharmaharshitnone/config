@@ -1,7 +1,4 @@
-
-	alias cp="cp -iv"
-	alias mv="mv -iv"
-	alias rm="rm -vI"
+	# cp/mv/rm aliases defined in aliases.zsh - don't duplicate
 	alias bc="bc -ql"
 	alias rsync="rsync -vrPlu"
 	alias mkd="mkdir -pv"

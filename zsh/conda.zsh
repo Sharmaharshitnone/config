@@ -1,2 +1,2 @@
-alias condain='eval "$(/home/kali/miniconda3/bin/conda shell.zsh hook)"'
+alias condain='eval "$("$HOME/miniconda3/bin/conda" shell.zsh hook)"'
 

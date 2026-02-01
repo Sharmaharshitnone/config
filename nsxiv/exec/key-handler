@@ -129,13 +129,14 @@ while read -r file; do
             ;;
         "d")
             # Delete file with confirmation
-            if [ "$(printf "No\\nYes" | dmenu -i -p "Really delete $file?")" = "Yes" ]; then
-                if rm "$file"; then
+            # if [ "$(printf "No\\nYes" | dmenu -i -p "Really delete $file?")" = "Yes" ]; then
+                # if rm "$file"; then
+		rm "$file";
                     notify-send "Deleted" "$file deleted"
-                else
-                    notify-send "Error" "Failed to delete $file"
-                fi
-            fi
+            #     else
+            #         notify-send "Error" "Failed to delete $file"
+            #     fi
+            # fi
             ;;
         "g")
             # Open in GIMP

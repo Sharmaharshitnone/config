@@ -1,5 +1,5 @@
+# i3status-rs configuration file
 icons_format = "<span size='large'>{icon}</span>"
-
 [theme]
 # theme = "ctp-mocha"
 theme = "gruvbox-dark"
@@ -7,16 +7,6 @@ overrides = { idle_bg = "none", idle_fg = "#ebdbb2", info_bg = "none", info_fg =
 
 [icons]
 icons = "material-nf"
-
-# 11c. TASK (TimeWarrior)
-[[block]]
-block = "custom"
-command = "timew | awk '/^Tracking/ { sub(/^Tracking /, \"\"); task=$0 } /Total|Current/ { time=$2 } END { if (task) print \" \" task \" (\" time \")\" }'"
-interval = 10
-format = "$text"
-[[block.click]]
-button = "left"
-cmd = "tmux select-window -t scratchpad:vit 2>/dev/null || tmux new-window -t scratchpad -n vit vit; i3-msg scratchpad show"
 
 # 11b. DATE
 [[block]]
@@ -34,26 +24,17 @@ cmd = "tmux select-window -t scratchpad:vit 2>/dev/null || tmux new-window -t sc
 [[block]]
 block = "time"
 interval = 60
-# format = "<span size='large' weight='bold' ></span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
 format = "<span size='large' weight='bold' >$icon</span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
 [block.theme_overrides]
 [[block.click]]
 button = "left"
 cmd = "tmux select-window -t scratchpad:peaclock 2>/dev/null || tmux new-window -t scratchpad -n peaclock peaclock; i3-msg scratchpad show"
 
-# 0. FOCUSED WINDOW
-[[block]]
-block = "focused_window"
-format = " $title.str(max_w:30) |"
-[block.theme_overrides]
-
-
 # 2b. UPTIME
 [[block]]
 block = "uptime"
 interval = 60
 format = "<span weight='bold' size='large'>UP:</span><span rise='1000'>$text</span>"
-[block.theme_overrides]
 
 # 3. CPU
 [[block]]
@@ -132,12 +113,6 @@ update = true
 [[block]]
 block = "music"
 format = "$icon {$combo.str(max_w:25,rot_interval:0.5) $play|}"
-# [[block.click]]
-# button = "up"
-# cmd = "brightnessctl set +5%"
-# [[block.click]]
-# button = "down"
-# cmd = "brightnessctl set 5%-"
 
 [[block.click]]
 button = "left"
@@ -149,7 +124,6 @@ action = "next"
 button = "middle"
 action = "prev"
 
-# 6a. POWER MODE
 [[block]]
 block = "custom"
 command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor | sed -e 's/performance/⚡ Perf/' -e 's/powersave/🌱 Save/'"
@@ -179,7 +153,6 @@ critical = 15
 [[block]]
 block = "temperature"
 format = "<span size='large'></span><span rise='1000'> $average</span>"
-# format = "<span size='large'></span>$icon<span rise='1000'>$average</span>"
 interval = 5
 chip = "*-isa-*"
 #chip = "coretemp-isa-*"
@@ -233,21 +206,3 @@ interval = 5
 [[block.click]]
 button = "left"
 cmd = "kitty -e zsh -ic warp"
-
-# 10. DAILY NOTES
-[[block]]
-block = "custom"
-command = "echo ''"
-format = "<span size='large'>$text </span>"
-# interval = 3600
-[block.theme_overrides]
-[[block.click]]
-button = "left"
-cmd = "mkdir -p ~/notes/10_daily/$(date +'%Y') && (tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape \":e ~/notes/10_daily/$(date +'%Y')/$(date +'%Y-%m-%d').md\" C-m || tmux new-window -t scratchpad -n notes \"nvim ~/notes/10_daily/$(date +'%Y')/$(date +'%Y-%m-%d').md\"); i3-msg scratchpad show"
-[[block.click]]
-button = "right"
-cmd = "mkdir -p ~/notes/20_work/reference && (tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape \":e ~/notes/20_work/reference/\" || tmux new-window -t scratchpad -n notes \"nvim ~/notes/20_work/reference/\") && i3-msg scratchpad show"
-[[block.click]]
-button = "middle"
-cmd = "(tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape Space n s && i3-msg scratchpad show) || (tmux new-window -t scratchpad -n notes \"nvim -c 'normal \\<Space>ns'\" && i3-msg scratchpad show)"
-

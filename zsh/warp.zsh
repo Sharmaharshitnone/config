@@ -37,8 +37,11 @@ nameserver 1.1.1.1'
         }
     fi
 
-    # 2. Detect connection state (robust parsing)
-    conn_status=$(warp-cli status 2>/dev/null)
+    # 2. Detect connection state (robust parsing with timeout to prevent hangs)
+    conn_status=$(timeout 5 warp-cli status 2>/dev/null) || {
+        echo "[!] warp-cli timed out after 5s" >&2
+        return 1
+    }
     warp_state=$(echo "$conn_status" | awk '
         /Status/ && /Connected/ {print "connected"; exit}
         /Status/ && /Disconnected/ {print "disconnected"; exit}
@@ -53,11 +56,9 @@ nameserver 1.1.1.1'
             # Wait for WARP to finish DNS cleanup (critical timing)
             sleep 1
             
-            echo ":: Restoring custom DNS..."
-            echo "$CLEARNET_DNS" | sudo tee /etc/resolv.conf >/dev/null
-
-            # Lock file to prevent overwrites
-            sudo chattr +i /etc/resolv.conf
+            echo ":: Restoring custom DNS (atomic operation)..."
+            # Atomic operation: unlock, write, lock in single sudo call to prevent race condition
+            sudo sh -c 'chattr -i /etc/resolv.conf 2>/dev/null; printf "%s" "$1" > /etc/resolv.conf && chattr +i /etc/resolv.conf' _ "$CLEARNET_DNS"
 
             # Optionally stop the service to reclaim RAM. This is safe because
             # we've already asked the daemon to disconnect and restored DNS.

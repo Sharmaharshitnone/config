@@ -1,8 +1,6 @@
 #!/bin/bash
 
-if pgrep -x "picom" > /dev/null; then
-    killall picom
-else
+if ! pkill -x picom 2>/dev/null; then
     picom -b
 fi
 pkill -RTMIN+13 i3status-rs

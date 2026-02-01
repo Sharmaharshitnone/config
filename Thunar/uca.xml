@@ -33,4 +33,15 @@
 	<range>*</range>
 	<patterns>*</patterns>
 </action>
+<action>
+	<icon>com.github.maoschanz.DynamicWallpaperEditor</icon>
+	<name>wallpaper</name>
+	<submenu></submenu>
+	<unique-id>1769934910493602-1</unique-id>
+	<command>xwallpaper --zoom %n</command>
+	<description></description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<image-files/>
+</action>
 </actions>

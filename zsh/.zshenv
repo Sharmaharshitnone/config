@@ -5,8 +5,11 @@ export XDG_DATA_HOME="$HOME/.local/share"
 export TERMINAL="kitty"
 export EDITOR="nvim"
 export VISUAL="nvim"
-
-# Ensure core paths are set for performance
-export PATH="$HOME/.local/bin:$PATH"
+export BROWSER="firefox"
 export CARGO_HOME="$XDG_DATA_HOME/cargo"
 export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
+
+# Prevent PATH duplication on subshells using typeset -U (unique)
+typeset -U path PATH
+path=("$HOME/.local/bin" "$CARGO_HOME/bin" $path)
+export PATH

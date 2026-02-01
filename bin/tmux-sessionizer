@@ -79,7 +79,8 @@ switch_to() {
 }
 
 has_session() {
-    tmux list-sessions | grep -q "^$1:"
+    # Use exact match prefix '=' to prevent regex metacharacter injection
+    tmux has-session -t "=$1" 2>/dev/null
 }
 
 hydrate() {

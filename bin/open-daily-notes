@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# 1. Define paths dynamically
+YEAR=$(date +'%Y')
+DATE=$(date +'%Y-%m-%d')
+NOTE_DIR="$HOME/notes/10_daily/$YEAR"
+NOTE_FILE="$NOTE_DIR/$DATE.md"
+
+# 2. Ensure directory exists
+mkdir -p "$NOTE_DIR"
+
+# 3. Check if 'scratchpad' session exists; if not, create it with the note
+if ! tmux has-session -t scratchpad 2>/dev/null; then
+    tmux new-session -d -s scratchpad -n notes "nvim $NOTE_FILE"
+else
+    # 4. Session exists: Check if 'notes' window exists
+    if tmux list-windows -t scratchpad | grep -q "notes"; then
+        # Window exists: switch to it and edit the file
+        tmux select-window -t scratchpad:notes
+        tmux send-keys -t scratchpad:notes Escape ":e $NOTE_FILE"
+    else
+        # Window missing: create it
+        tmux new-window -t scratchpad -n notes "nvim $NOTE_FILE"
+    fi
+fi
+
+# 5. Open the terminal attached to this session
+# We set a specific class/title so i3 can handle it if needed
+
+i3-msg scratchpad show

@@ -7,15 +7,6 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-autoload -Uz compinit
-# Check if cache exists and is less than 24 hours old
-if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
-  compinit -C
-else
-  compinit -i
-  zcompile ~/.zcompdump
-fi
-
 # --- 1. PLUGIN MANAGER (Sheldon) ---
 # Initialize plugins immediately (p10k needs to be first)
 eval "$(SHELDON_CONFIG_DIR=$ZDOTDIR sheldon source)"
@@ -37,18 +28,17 @@ export FZF_DEFAULT_OPTS="--height 70% --layout=reverse --border --inline-info"
 bindkey '^R' fzf-history-widget
 bindkey '^T' fzf-tab
 
-# --- ELITE COMPINIT (Fixed Path) ---
+# --- COMPINIT (Single init, XDG-compliant) ---
 autoload -Uz compinit
-# Define exactly where the dump file lives (Keep Home clean)
-_comp_dumpfile="${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
+_comp_dumpfile="${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump-${ZSH_VERSION}"
 
-# Check if cache exists and is fresh (less than 24h old)
 if [[ -n $_comp_dumpfile(#qN.mh+24) ]]; then
-  compinit -C -d "$_comp_dumpfile"  # FAST (Skip checks)
+  compinit -C -d "$_comp_dumpfile"
 else
-  compinit -i -d "$_comp_dumpfile"  # SLOW (Regenerate)
-  cat "$_comp_dumpfile" | gzip > "${_comp_dumpfile}.zwc" || zcompile "$_comp_dumpfile"        # Compile for speed
+  compinit -i -d "$_comp_dumpfile"
+  { zcompile "$_comp_dumpfile" } &!  # Background compile, .zwc is zsh word code NOT gzip
 fi
+unset _comp_dumpfile
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'eza -1 --color=always $realpath'
 

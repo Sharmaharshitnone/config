@@ -103,7 +103,7 @@ start_recording() {
     -map 0:v -map "[aout]" \
     -vaapi_device /dev/dri/renderD128 \
     -vf "format=nv12,hwupload" \
-    -c:v h264_vaapi -qp 24 \
+    -c:v h264_vaapi -qp 20 \
     -c:a aac -b:a 192k \
     "$OUTFILE" >"$LOGFILE" 2>&1 &
   

@@ -86,15 +86,20 @@ alias p="pass"
 alias pp="pass git push"
 
 # History Hooks (Prevent logging failed commands)
+# Uses add-zsh-hook to avoid overwriting other precmd hooks (p10k uses precmd)
+autoload -Uz add-zsh-hook
+
 function zshaddhistory() {
     LASTHIST=${1//\\\\$\'\\n\'/}
     return 2 # Save to internal list but wait for execution status
 }
-function precmd() {
+
+function _hist_precmd() {
     if [[ $? == 0 && -n ${LASTHIST//[[:space:]\\n]/} && -n $HISTFILE ]] ; then
         print -sr -- ${=${LASTHIST%%\'\\n\'}}
     fi 
 }
+add-zsh-hook precmd _hist_precmd
 
 
 alias v='nvim'

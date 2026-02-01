@@ -26,21 +26,8 @@ if [[ -n "$KITTY_PID" ]]; then
   i3-msg '[class="main-tmux"] focus' > /dev/null
 
   # Find tmux client running under this specific kitty instance
-  # Use ps to get all descendants in one call (O(n) instead of O(n²) recursion)
-  TMUX_CLIENT_PID=$(ps --ppid "$KITTY_PID" -o pid= 2>/dev/null | while read child; do
-    # Check direct children first
-    if ps -p "$child" -o comm= 2>/dev/null | grep -q '^tmux'; then
-      echo "$child"
-      break
-    fi
-    # Check grandchildren (kitty -> shell -> tmux pattern)
-    ps --ppid "$child" -o pid= 2>/dev/null | while read grandchild; do
-      if ps -p "$grandchild" -o comm= 2>/dev/null | grep -q '^tmux'; then
-        echo "$grandchild"
-        break
-      fi
-    done
-  done | head -n 1)
+  # Use pstree for O(1) tree traversal instead of nested ps loops
+  TMUX_CLIENT_PID=$(pstree -p "$KITTY_PID" 2>/dev/null | grep -oP 'tmux[^)]*\(\K[0-9]+' | head -1)
   
   if [[ -n "$TMUX_CLIENT_PID" ]]; then
     # Get TTY from the specific tmux client process

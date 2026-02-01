@@ -172,24 +172,26 @@ bindsym $mod+m bar mode toggle
 
 
 bar {
-        # i3bar_command i3bar
-        
-        # status_command i3status | ~/.config/i3/scripts/i3status_json.py
+        i3bar_command i3bar --t
         status_command  i3status-rs ~/.config/i3status-rust/config.toml 
         font pango:JetBrainsMono Nerd Font 11
         strip_workspace_numbers no
         position top
 	mode hide
+	padding 0
         hidden_state hide
         modifier $mod+Mod1
          colors {
-        background #282828
+        # background #282828
+	background #00000000
+        statusline #00000000
+        separator #00000000
 
         # target             border      bg          text
-        focused_workspace    $blue       #282828     $text
-        active_workspace     $surface1   #282828     $subtext1
-        inactive_workspace   $mantle     #282828     $overlay1
-        urgent_workspace     $red        #000000     $maroon
+        focused_workspace    $blue       #00000000     $text
+        active_workspace     $surface1   #00000000    $subtext1
+        inactive_workspace   $mantle     #00000000     $overlay1
+        urgent_workspace     $red        #00000000    $maroon
     }
 
 }

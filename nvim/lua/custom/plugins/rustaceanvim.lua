@@ -1,7 +1,10 @@
 return {
   'mrcjkb/rustaceanvim',
-  version = '^6',
+  version = '^5',
   ft = 'rust', -- Lazy-load on Rust files only
+  config = function(_, opts)
+    vim.g.rustaceanvim = vim.tbl_deep_extend('force', {}, opts or {})
+  end,
   opts = {
     tools = {
       hover_actions = { auto_focus = true },
@@ -25,7 +28,8 @@ return {
             allFeatures = true,
             buildScripts = { enable = true },
           },
-          checkOnSave = {
+          checkOnSave = true,
+          check = {
             command = 'clippy',
             extraArgs = { '--', '-W', 'clippy::all' },
           },
