@@ -1,6 +1,10 @@
 return {
   'kawre/leetcode.nvim',
-  build = ':TSUpdate html',
+  -- NOTE: :TSUpdate removed in Neovim 0.11+, use native API in post-build
+  build = function()
+    -- Install html parser for leetcode descriptions using native API
+    pcall(function() require('nvim-treesitter').install { 'html' } end)
+  end,
   dependencies = {
     'nvim-telescope/telescope.nvim',
     -- "ibhagwan/fzf-lua",

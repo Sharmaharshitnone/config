@@ -45,14 +45,36 @@
 	<image-files/>
 </action>
 <action>
-	<icon></icon>
+	<icon>apple-music</icon>
 	<name>rmpc</name>
 	<submenu></submenu>
 	<unique-id>1770185152256880-1</unique-id>
-	<command>kitty `rmpc stop; rmpc listall / | rmpc stop; mpc clear; mpc add %f; mpc play`</command>
+	<command>thunar-mpd-play %f</command>
 	<description></description>
 	<range>*</range>
 	<patterns>*</patterns>
 	<audio-files/>
+</action>
+<action>
+	<icon>cm_extractfiles</icon>
+	<name>Extract</name>
+	<submenu></submenu>
+	<unique-id>1770301965208516-1</unique-id>
+	<command>extract-file %f</command>
+	<description></description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<startup-notify/>
+</action>
+<action>
+	<icon></icon>
+	<name>zip </name>
+	<submenu></submenu>
+	<unique-id>1770302274033699-2</unique-id>
+	<command>7z a -tzip -mx=5 -mmt=on %f.zip %F</command>
+	<description></description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<directories/>
 </action>
 </actions>
