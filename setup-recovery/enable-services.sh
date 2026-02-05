@@ -108,7 +108,33 @@ fi
 
 echo ""
 echo "========================================================"
-if [ $EqNABLED_COUNT -gt 0 ]; then
+echo "   Enabling System Services: keyd"
+echo "========================================================"
+echo ""
+log_info "keyd: Kernel-level keyboard remapping daemon"
+if systemctl is-active --quiet keyd; then
+    log_info "✓ keyd is already running"
+else
+    echo -n "Enable keyd system service? (y/n) "
+    read -r -n 1 REPLY
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if sudo systemctl enable --now keyd 2>/dev/null; then
+            log_info "✓ System keyd enabled and started"
+            log_info "  Config: /etc/keyd/default.conf"
+            log_info "  Reload: sudo keyd reload"
+        else
+            log_warn "Could not enable keyd"
+        fi
+    else
+        log_info "Skipped keyd"
+    fi
+fi
+
+echo ""
+echo "========================================================"
+if [ $ENABLED_COUNT -gt 0 ]; then
     log_info "✓ Enabled $ENABLED_COUNT user service(s)"
 else
     log_warn "No services were enabled"

@@ -28,8 +28,8 @@ input type:keyboard {
     repeat_delay 200
     repeat_rate 45
     xkb_layout us
-    # Options: caps:escape maps CapsLock to Esc (Crucial for Vim)
-    xkb_options caps:swapescape,altwin:menu_win
+    # Keyboard remapping handled by keyd daemon
+    # See: /etc/keyd/default.conf
 }
 
 # Touchpad: Mac-like Feel

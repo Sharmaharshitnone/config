@@ -16,7 +16,8 @@ exec --no-startup-id sh -c 'DISPLAY=:0 clipmenud 2>/dev/null &'
 exec --no-startup-id udiskie --tray &
 exec --no-startup-id aw-qt
 exec --no-startup-id ~/.config/i3/scripts/start-polkit-agent.sh &
-exec --no-startup-id ~/.config/i3/scripts/bg.sh
+exec --no-startup-id xwallpaper --zoom  /home/kali/Pictures/wallpapers/General/wallhaven-6llve6.png
+exec --no-startup-id ~/.config/i3/scripts/multi-monitor.sh &
 exec_always --no-startup-id picom -b
 exec_always --no-startup-id ~/.config/i3/scripts/workspace-names.py &
 # Touchpad configuration - enable tap to click and proper button mapping
@@ -27,7 +28,6 @@ focus_on_window_activation focus
 for_window [all] title_window_icon on
 
 exec_always --no-startup-id ~/.config/i3/scripts/alternating_layouts.py
-exec_always setxkbmap -option caps:swapescape,altwin:menu_win
 
 # For recording screen
 bindsym $mod+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record.sh toggle

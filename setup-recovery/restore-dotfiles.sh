@@ -410,6 +410,44 @@ else
     log_warn "  ✗ kitty not installed (cannot create xterm symlink)"
 fi
 
+# === KEYD CONFIGURATION (System-wide - /etc/keyd) ===
+KEYD_CONF_SOURCE="$PARENT_CONFIG_DIR/keyd"
+KEYD_CONF_TARGET="/etc/keyd"
+
+if [[ -d "$KEYD_CONF_SOURCE" ]]; then
+    log_info "Creating symlink for keyd config..."
+    
+    if [[ ! -w "$KEYD_CONF_TARGET" ]] && [[ ! -w "/etc" ]]; then
+        log_warn "⚠ /etc/keyd is not writable (requires sudo)"
+        log_warn "  Run: sudo ln -sf $KEYD_CONF_SOURCE/default.conf /etc/keyd/default.conf"
+    else
+        sudo mkdir -p "$KEYD_CONF_TARGET"
+        
+        for conf_file in "$KEYD_CONF_SOURCE"/*.conf; do
+            if [[ -f "$conf_file" ]]; then
+                conf_name=$(basename "$conf_file")
+                target="$KEYD_CONF_TARGET/$conf_name"
+                
+                if [[ -e "$target" ]] && [[ "$(readlink -f "$target")" == "$conf_file" ]]; then
+                    log_info "  ✓ $conf_name is already correctly linked"
+                else
+                    [[ -e "$target" ]] && sudo mv "$target" "${target}.backup_$(date +%Y%m%d_%H%M%S)"
+                    sudo ln -sf "$conf_file" "$target"
+                    log_info "  → /etc/keyd/$conf_name (symlink)"
+                fi
+            fi
+        done
+        
+        # Reload keyd if running
+        if systemctl is-active --quiet keyd; then
+            sudo keyd reload
+            log_info "  ✓ keyd reloaded"
+        fi
+    fi
+else
+    log_warn "  keyd config not found in $KEYD_CONF_SOURCE"
+fi
+
 # === Make all shell scripts executable ===
 log_info "Making all shell scripts executable..."
 find "$PARENT_CONFIG_DIR" -type f \( -name "*.sh" -o -name "*.py" \) 2>/dev/null | while read -r script; do

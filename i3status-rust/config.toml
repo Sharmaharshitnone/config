@@ -1,5 +1,5 @@
-# i3status-rs configuration file
 icons_format = "<span size='large'>{icon}</span>"
+
 [theme]
 # theme = "ctp-mocha"
 theme = "gruvbox-dark"
@@ -24,6 +24,7 @@ cmd = "tmux select-window -t scratchpad:vit 2>/dev/null || tmux new-window -t sc
 [[block]]
 block = "time"
 interval = 60
+# format = "<span size='large' weight='bold' ></span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
 format = "<span size='large' weight='bold' >$icon</span> <span rise='1000'>$timestamp.datetime(f:'%I:%M %p')</span>"
 [block.theme_overrides]
 [[block.click]]
@@ -126,10 +127,10 @@ action = "prev"
 
 [[block]]
 block = "custom"
-command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor | sed -e 's/performance/⚡ Perf/' -e 's/powersave/🌱 Save/'"
+command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor | sed -e 's/performance/󱐌/' -e 's/powersave//'"
 interval = "once"
 signal = 12
-format = "$text"
+format = "<span size='large'>$text</span>"
 [[block.click]]
 button = "left"
 cmd = "~/.config/i3/scripts/power-control.sh performance && pkill -RTMIN+12 i3status-rs"
@@ -181,16 +182,6 @@ signal = 13
 button = "left"
 cmd = "~/.config/i3/scripts/picom-toggle.sh && pkill -RTMIN+13 i3status-rs"
 
-# 8. BACKGROUND
-[[block]]
-block = "custom"
-command = "echo ''"
-format = "<span size='large'>$text</span>"
-# interval = once
-[[block.click]]
-button = "left"
-cmd = "~/.config/i3/scripts/bg.sh"
-
 # 6b. warp vpn
 [[block]]
 block = "custom"
@@ -206,3 +197,21 @@ interval = 5
 [[block.click]]
 button = "left"
 cmd = "kitty -e zsh -ic warp"
+
+# 10. DAILY NOTES
+[[block]]
+block = "custom"
+command = "echo ''"
+format = "<span size='large'>$text </span>"
+# interval = 3600
+[block.theme_overrides]
+[[block.click]]
+button = "left"
+cmd = "mkdir -p ~/notes/10_daily/$(date +'%Y') && (tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape \":e ~/notes/10_daily/$(date +'%Y')/$(date +'%Y-%m-%d').md\" C-m || tmux new-window -t scratchpad -n notes \"nvim ~/notes/10_daily/$(date +'%Y')/$(date +'%Y-%m-%d').md\"); i3-msg scratchpad show"
+[[block.click]]
+button = "right"
+cmd = "mkdir -p ~/notes/20_work/reference && (tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape \":e ~/notes/20_work/reference/\" || tmux new-window -t scratchpad -n notes \"nvim ~/notes/20_work/reference/\") && i3-msg scratchpad show"
+[[block.click]]
+button = "middle"
+cmd = "(tmux select-window -t scratchpad:notes 2>/dev/null && tmux send-keys -t scratchpad:notes Escape Space n s && i3-msg scratchpad show) || (tmux new-window -t scratchpad -n notes \"nvim -c 'normal \\<Space>ns'\" && i3-msg scratchpad show)"
+

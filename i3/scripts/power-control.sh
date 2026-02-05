@@ -9,12 +9,12 @@ case "$MODE" in
     "performance")
         pkexec auto-cpufreq --force=performance
         pkexec tlp ac
-        notify-send "⚡ High Performance" "CPU: Performance | TLP: AC Mode" -u critical
+        notify-send "󱐌 High Performance" "CPU: Performance | TLP: AC Mode" -u critical
         ;;
     "powersave")
         pkexec auto-cpufreq --force=powersave
         pkexec tlp power-saver
-        notify-send "🌱 Power Saver" "CPU: Powersave | TLP: Battery Mode" -u low
+        notify-send " Power Saver" "CPU: Powersave | TLP: Battery Mode" -u low
         ;;
     "reset")
         pkexec auto-cpufreq --force=reset

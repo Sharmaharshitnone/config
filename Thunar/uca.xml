@@ -44,4 +44,15 @@
 	<patterns>*</patterns>
 	<image-files/>
 </action>
+<action>
+	<icon></icon>
+	<name>rmpc</name>
+	<submenu></submenu>
+	<unique-id>1770185152256880-1</unique-id>
+	<command>kitty `rmpc stop; rmpc listall / | rmpc stop; mpc clear; mpc add %f; mpc play`</command>
+	<description></description>
+	<range>*</range>
+	<patterns>*</patterns>
+	<audio-files/>
+</action>
 </actions>

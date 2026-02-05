@@ -40,7 +40,7 @@ sudo pacman -S --needed --noconfirm ttf-liberation ttf-nerd-fonts-symbols-mono t
 sudo pacman -S --needed --noconfirm usbutils valgrind virtualbox virtualbox-host-modules-arch vit vlc vulkan-intel
 sudo pacman -S --needed --noconfirm waybar wget wireless_tools xclip xdg-utils xdotool xorg-xev xorg-xinit
 sudo pacman -S --needed --noconfirm xorg-xinput xorg-xrandr xorg-xwininfo xss-lock xwallpaper yazi yt-dlp
-sudo pacman -S --needed --noconfirm zathura zathura-cb zathura-pdf-poppler zeal zig zoxide zram-generator zsh
+sudo pacman -S --needed --noconfirm zathura zathura-cb zathura-pdf-poppler zeal zig zoxide zram-generator zsh keyd
 
 if [[ $? -eq 0 ]]; then
     log_info "✓ Pacman packages installed successfully"

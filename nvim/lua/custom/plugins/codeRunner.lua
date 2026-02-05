@@ -12,17 +12,25 @@ return {
       local function find_project_root()
         local root_files = {
           -- Java
-          'gradlew', 'mvnw', 'pom.xml', 'build.gradle',
+          'gradlew',
+          'mvnw',
+          'pom.xml',
+          'build.gradle',
           -- JS/TS (Bun removed)
-          'package.json', 'deno.json', 'nx.json', 'turbo.json',
+          'package.json',
+          'deno.json',
+          'nx.json',
+          'turbo.json',
           -- Rust/Go
-          'Cargo.toml', 'go.mod',
+          'Cargo.toml',
+          'go.mod',
           -- C/C++
-          'CMakeLists.txt', 'Makefile'
+          'CMakeLists.txt',
+          'Makefile',
         }
 
         -- Search upward from the *current buffer's* directory
-        local current_dir = vim.fn.expand('%:p:h')
+        local current_dir = vim.fn.expand '%:p:h'
         local root = vim.fs.find(root_files, { path = current_dir, upward = true })[1]
 
         if root then
@@ -31,7 +39,7 @@ return {
         return nil
       end
 
-      code_runner.setup({
+      code_runner.setup {
         mode = 'float',
         focus = true,
         startinsert = false,
@@ -39,7 +47,7 @@ return {
         term = { clean = true, init = 1 },
 
         before_run_filetype = function()
-          if vim.fn.bufname('%') ~= "" then
+          if vim.fn.bufname '%' ~= '' then
             pcall(vim.cmd, 'write')
           end
         end,
@@ -77,27 +85,27 @@ return {
             -- 2. Local Project Context (node_modules)
             -- This ensures we use the project's installed 'tsx' version and configuration.
             if root then
-                local local_tsx = root .. '/node_modules/.bin/tsx'
-                if vim.fn.filereadable(local_tsx) == 1 then
-                    -- Run using the local binary, relative to CWD might be needed or full path
-                    return local_tsx .. ' $file'
-                end
-                
-                local local_tsnode = root .. '/node_modules/.bin/ts-node'
-                if vim.fn.filereadable(local_tsnode) == 1 then
-                    return local_tsnode .. ' $file'
-                end
+              local local_tsx = root .. '/node_modules/.bin/tsx'
+              if vim.fn.filereadable(local_tsx) == 1 then
+                -- Run using the local binary, relative to CWD might be needed or full path
+                return local_tsx .. ' $file'
+              end
+
+              local local_tsnode = root .. '/node_modules/.bin/ts-node'
+              if vim.fn.filereadable(local_tsnode) == 1 then
+                return local_tsnode .. ' $file'
+              end
             end
 
             -- 3. Global / Scratch File Fallbacks
-            if vim.fn.executable('pnpm') == 1 then
+            if vim.fn.executable 'pnpm' == 1 then
               return 'pnpm dlx tsx $file'
             end
-            
-            if vim.fn.executable('npx') == 1 then
+
+            if vim.fn.executable 'npx' == 1 then
               return 'npx tsx $file'
             end
-            
+
             -- 4. Final Fallback
             return 'tsc $fileName && node $dir/$fileNameWithoutExt.js && rm $dir/$fileNameWithoutExt.js'
           end,
@@ -107,23 +115,38 @@ return {
           end,
 
           -- Bleeding Edge C++ (C++23)
+          -- cpp = function()
+          --   local f = vim.fn.expand('%:p')
+          --   -- Output binary to /tmp to keep project clean
+          --   local out = '/tmp/' .. vim.fn.fnamemodify(f, ':t:r')
+          --   return {
+          --     'g++ -std=c++23 -O3 -march=native -Wall -Wextra -DLOCAL ' .. vim.fn.shellescape(f) .. ' -o ' .. out .. ' &&',
+          --     out
+          --   }
+          -- end,
+
           cpp = function()
-            local f = vim.fn.expand('%:p')
+            local f = vim.fn.expand '%:p'
             -- Output binary to /tmp to keep project clean
             local out = '/tmp/' .. vim.fn.fnamemodify(f, ':t:r')
             return {
-              'g++ -std=c++23 -O3 -march=native -Wall -Wextra -DLOCAL ' .. vim.fn.shellescape(f) .. ' -o ' .. out .. ' &&',
-              out
+              -- Added -pthread here vvv
+              'g++ -std=c++23 -O3 -march=native -Wall -Wextra -pthread -DLOCAL '
+                .. vim.fn.shellescape(f)
+                .. ' -o '
+                .. out
+                .. ' && '
+                .. out,
             }
           end,
 
           -- Bleeding Edge C (C23)
           c = function()
-            local f = vim.fn.expand('%:p')
+            local f = vim.fn.expand '%:p'
             local out = '/tmp/' .. vim.fn.fnamemodify(f, ':t:r')
             return {
               'gcc -std=c23 -O3 -march=native -Wall -Wextra -DLOCAL ' .. vim.fn.shellescape(f) .. ' -o ' .. out .. ' &&',
-              out
+              out,
             }
           end,
 
@@ -133,13 +156,13 @@ return {
               return 'cd ' .. root .. ' && cargo run'
             end
             -- Single file rust: compile to tmp and run
-            local f = vim.fn.expand('%:p')
+            local f = vim.fn.expand '%:p'
             local out = '/tmp/' .. vim.fn.fnamemodify(f, ':t:r')
             return 'rustc ' .. vim.fn.shellescape(f) .. ' -o ' .. out .. ' && ' .. out
           end,
 
           python = function()
-            return 'python3 -u ' .. vim.fn.shellescape(vim.fn.expand('%:p'))
+            return 'python3 -u ' .. vim.fn.shellescape(vim.fn.expand '%:p')
           end,
 
           go = function()
@@ -147,13 +170,13 @@ return {
             if root and vim.fn.filereadable(root .. '/go.mod') == 1 then
               return 'cd ' .. root .. ' && go run .'
             end
-            return 'go run ' .. vim.fn.shellescape(vim.fn.expand('%:p'))
-          end
+            return 'go run ' .. vim.fn.shellescape(vim.fn.expand '%:p')
+          end,
         },
 
         focus_on_run = true,
         hot_reload = false,
-      })
+      }
 
       -- Keymaps
       local opts = { noremap = true, silent = true }

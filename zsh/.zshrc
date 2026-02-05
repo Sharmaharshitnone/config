@@ -1,6 +1,3 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.config/zsh/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
 zmodload zsh/zprof
 #
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
@@ -11,16 +8,20 @@ fi
 # Initialize plugins immediately (p10k needs to be first)
 eval "$(SHELDON_CONFIG_DIR=$ZDOTDIR sheldon source)"
 
-# --- 2. THEME CONFIG ---
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-# Legacy p10k config removed. Using .config/zsh/.p10k.zsh at the end.
 
 # --- 3. BASIC OPTIONS ---
 HISTFILE="$XDG_CACHE_HOME/zsh_history"
 HISTSIZE=1000000
 SAVEHIST=1000000
-setopt inc_append_history share_history
+setopt HIST_IGNORE_DUPS hist_ignore_space
+setopt hist_ignore_space HIST_IGNORE_ALL_DUPS inc_append_history share_history
 setopt hist_ignore_all_dups hist_find_no_dups auto_cd nobEEP
+export HISTORY_IGNORE="(ls|ll|la|cd|cd ..|pwd|exit|clear|history|rm *|nvim *|touch *|chmod *|chown *|export *|unset *|reboot|shutdown|top|htop|btop|kill *|pkill *|make clean|cargo clean)"
+export ZSH_AUTOSUGGEST_HISTORY_IGNORE="$HISTORY_IGNORE"
+export ZSH_AUTOSUGGEST_USE_ASYNC=1
+export ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#606060"
+bindkey '^ ' autosuggest-accept
 
 # --- 3.5. FZF INTEGRATION ---
 source <(fzf --zsh)
