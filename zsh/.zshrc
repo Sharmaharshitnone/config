@@ -96,6 +96,27 @@ done
 # --- 7. ZOXIDE (Must be at end) ---
 eval "$(zoxide init zsh)"
 
+load-tokens(){
+	local -A mappings=(
+		"tokens/github" "GITHUB_PERSONAL_ACCESS_TOKEN"
+		"tokens/context7" "CONTEXT7_API_KEY"
+	)
+
+	local secret_path var secret
+	
+	for secret_path var in ${(kv)mappings}; do
+		
+		secret=$(pass "$secret_path" 2>/dev/null | read -r line && echo "$line")
+
+		if [[ -n "$secret" ]]; then
+		    export "$var"="$secret"
+		    printf "Loaded %s\n" "$var" "$secret_path"
+		else
+		    printf "Warning: No secret found at %s\n" "$secret_path" "$var"
+		fi
+	done
+}
+
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
 source "$ZDOTDIR/syntax-highlight.zsh"

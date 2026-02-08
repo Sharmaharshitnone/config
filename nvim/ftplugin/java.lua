@@ -23,6 +23,28 @@ else
   jdtls_path = vim.fn.stdpath('data') .. '/mason/bin/jdtls'
 end
 
+-- ── Resolve java-debug-adapter and java-test bundles ────────────
+-- These JARs are required for nvim-dap to debug Java via jdtls.
+local bundles = {}
+local mason_path = vim.fn.stdpath 'data' .. '/mason/packages'
+
+-- java-debug-adapter
+local java_dbg_jar = vim.fn.glob(mason_path .. '/java-debug-adapter/extension/server/com.microsoft.java.debug.plugin-*.jar', true)
+if java_dbg_jar ~= '' then
+  table.insert(bundles, java_dbg_jar)
+end
+
+-- java-test (vscode-java-test)
+local java_test_jars = vim.fn.glob(mason_path .. '/java-test/extension/server/*.jar', true, true)
+if java_test_jars then
+  for _, jar in ipairs(java_test_jars) do
+    -- Exclude the runner JAR (it's not a bundle, it's launched separately)
+    if not vim.endswith(jar, 'com.microsoft.java.test.runner-jar-with-dependencies.jar') then
+      table.insert(bundles, jar)
+    end
+  end
+end
+
 local config = {
   name = 'jdtls',
 
@@ -33,17 +55,10 @@ local config = {
   -- See `:help vim.fs.root`
   root_dir = vim.fs.root(0, { 'gradlew', '.git', 'mvnw' }),
 
-  -- Here you can configure eclipse.jdt.ls specific settings
-  -- See https://github.com/eclipse/eclipse.jdt.ls/wiki/Running-the-JAVA-LS-server-from-the-command-line#initialize-request
-  -- for a list of options
-
-  -- This sets the `initializationOptions` sent to the language server
-  -- If you plan on using additional eclipse.jdt.ls plugins like java-debug
-  -- you'll need to set the `bundles`
-  --
-  -- See https://codeberg.org/mfussenegger/nvim-jdtls#java-debug-installation
-  --
-  -- If you don't plan on any eclipse.jdt.ls plugins you can remove this
+  -- Load java-debug + java-test bundles for DAP integration
+  init_options = {
+    bundles = bundles,
+  },
 }
 
 -- Use protected call to require jdtls
@@ -61,3 +76,23 @@ if vim.fn.executable(jdtls_cmd) == 0 then
 end
 
 jdtls.start_or_attach(config)
+
+-- Register DAP configurations after jdtls attaches
+-- This enables :RustLsp debuggables-style workflow for Java
+vim.api.nvim_create_autocmd('LspAttach', {
+  pattern = '*.java',
+  callback = function(args)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    if client and client.name == 'jdtls' then
+      -- Setup DAP for Java (requires java-debug-adapter bundle)
+      pcall(jdtls.setup_dap, { hotcodereplace = 'auto' })
+
+      -- Java debug keymaps
+      local opts = { buffer = args.buf, noremap = true, silent = true }
+      vim.keymap.set('n', '<leader>jt', function() jdtls.test_nearest_method() end, vim.tbl_extend('force', opts, { desc = 'Java: Debug Test Method' }))
+      vim.keymap.set('n', '<leader>jT', function() jdtls.test_class() end, vim.tbl_extend('force', opts, { desc = 'Java: Debug Test Class' }))
+      vim.keymap.set('n', '<leader>jo', function() jdtls.organize_imports() end, vim.tbl_extend('force', opts, { desc = 'Java: Organize Imports' }))
+    end
+  end,
+  once = false,
+})

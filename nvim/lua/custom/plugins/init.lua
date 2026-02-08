@@ -20,12 +20,6 @@ return {
       end
 
       vim.keymap.set('n', '<leader>o', smart_split_and_find, { desc = 'Smart split and find file' })
-      
-      -- Set Telescope transparency highlights
-      vim.api.nvim_set_hl(0, 'TelescopeNormal', { bg = 'none' })
-      vim.api.nvim_set_hl(0, 'TelescopeBorder', { bg = 'none' })
-      vim.api.nvim_set_hl(0, 'TelescopePromptNormal', { bg = 'none' })
-      vim.api.nvim_set_hl(0, 'TelescopePreviewNormal', { bg = 'none' })
     end,
   },
   {

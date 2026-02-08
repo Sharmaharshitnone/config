@@ -292,47 +292,7 @@ require('lazy').setup({
         -- spacing = 3,
         align = 'top',
       },
-      icons = {
-        -- set icon mappings to true if you have a Nerd Font
-        mappings = vim.g.have_nerd_font,
-        -- If you are using a Nerd Font: set icons.keys to an empty table which will use the
-        -- default which-key.nvim defined Nerd Font icons, otherwise define a string table
-        keys = vim.g.have_nerd_font and {} or {
-          -- Navigation
-          Up = '↑ ',
-          Down = '↓ ',
-          Left = '← ',
-          Right = '→ ',
-          -- Modifiers
-          C = '⌃ ',
-          M = '⌥ ',
-          D = '⌘ ',
-          S = '⇧ ',
-          -- Special keys
-          CR = '↵ ',
-          Esc = '⎋ ',
-          BS = '⌫ ',
-          NL = '↲ ',
-          Space = '␣ ',
-          Tab = '⇥ ',
-          -- Scroll
-          ScrollWheelDown = '⟱ ',
-          ScrollWheelUp = '⟰ ',
-          -- Function keys
-          F1 = 'F1',
-          F2 = 'F2',
-          F3 = 'F3',
-          F4 = 'F4',
-          F5 = 'F5',
-          F6 = 'F6',
-          F7 = 'F7',
-          F8 = 'F8',
-          F9 = 'F9',
-          F10 = 'F10',
-          F11 = 'F11',
-          F12 = 'F12',
-        },
-      },
+      icons = { mappings = vim.g.have_nerd_font, },
       -- layout = {
       --   align = 'center', -- Center align keys in the popup
       --   height = { min = 4, max = 25 },
@@ -343,6 +303,7 @@ require('lazy').setup({
       spec = {
         { '<leader>s', group = '[S]earch' },
         { '<leader>t', group = '[T]oggle' },
+        { '<leader>d', group = '[D]ebug' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
       },
     },
@@ -422,35 +383,7 @@ require('lazy').setup({
 
       -- NOTE: Change color from here
 
-      vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = '#C3B9E1', bold = true })
-      vim.api.nvim_set_hl(0, 'LineNr', { fg = '#5E81AC' }) -- Add this line
       vim.opt.cursorline = true
-
-      -- NOTE: Harshit You can undo the below by comments
-
-      -- Make core UI transparent where possible
-      local function set_transparent(hl)
-        pcall(vim.api.nvim_set_hl, 0, hl, { bg = 'none' })
-      end
-      set_transparent 'Normal'
-      set_transparent 'NormalFloat'
-      set_transparent 'FloatBorder'
-      set_transparent 'SignColumn'
-      set_transparent 'Pmenu'
-      set_transparent 'PmenuSel'
-      set_transparent 'PmenuBorder'
-      set_transparent 'TelescopeNormal'
-      set_transparent 'TelescopeBorder'
-      set_transparent 'TelescopePromptNormal'
-      set_transparent 'TelescopePromptBorder'
-      set_transparent 'TelescopeResultsNormal'
-      set_transparent 'TelescopePreviewNormal'
-      set_transparent 'NeoTreeNormal'
-      set_transparent 'NeoTreeNormalNC'
-      set_transparent 'WhichKeyFloat'
-      set_transparent 'WhichKey'
-      set_transparent 'WhichKeyBorder'
-      -- If a theme overrides after this, keep Catppuccin set to transparent (see catppuccin.lua)
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'

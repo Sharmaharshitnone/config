@@ -153,19 +153,11 @@ mode "resize" {
         bindsym $mod+r mode "default"
 }
 
-
-set $blue      #89b4fa
-set $surface0  #313244
 set $text      #cdd6f4
-set $surface1  #45475a
-set $mantle    #181825
 set $subtext1  #bac2de
 set $base      #1e1e2e
 set $overlay1  #7f849c
 set $maroon    #eba0ac
-set $red       #fb4934
-set $green     #b8bb26
-set $yellow    #fabd2f
 
 bindsym $mod+r mode "resize"
 bindsym $mod+m bar mode toggle
@@ -188,10 +180,10 @@ bar {
         separator #00000000
 
         # target             border      bg          text
-        focused_workspace    $blue       #00000000     $text
-        active_workspace     $surface1   #00000000    $subtext1
-        inactive_workspace   $mantle     #00000000     $overlay1
-        urgent_workspace     $red        #00000000    $maroon
+        focused_workspace    $base       #00000000    $text
+        active_workspace     #00000000   #00000000    $subtext1
+        inactive_workspace   #00000000   #00000000     $overlay1
+        urgent_workspace     #00000000   #00000000    $maroon
     }
 
 }

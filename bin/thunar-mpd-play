@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# 1. Define the environment
+# We use mpc because it's the lightweight CLI standard for MPD actions.
+# rmpc is a TUI, great for watching, but mpc is built for scripting.
+MUSIC_DIR=$(grep '^music_directory' ~/.config/mpd/mpd.conf | cut -d '"' -f 2 | sed "s|~|$HOME|")
+
+# 2. Logic: Clear, Add, Play
+# We wrap the filename in quotes to handle [brackets] and spaces.
+mpc clear
+# Add the file. We strip the MUSIC_DIR prefix to make it relative for MPD.
+mpc add "${1#"$MUSIC_DIR/"}"
+mpc play
