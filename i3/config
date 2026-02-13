@@ -14,7 +14,6 @@ exec --no-startup-id blueman-applet
 exec --no-startup-id dunst
 exec --no-startup-id sh -c 'DISPLAY=:0 clipmenud 2>/dev/null &'
 exec --no-startup-id udiskie --tray &
-exec --no-startup-id aw-qt
 exec --no-startup-id ~/.config/i3/scripts/start-polkit-agent.sh &
 exec --no-startup-id xwallpaper --zoom  /home/kali/Pictures/wallpapers/General/wallhaven-6llve6.png
 exec --no-startup-id ~/.config/i3/scripts/multi-monitor.sh &

@@ -22,6 +22,9 @@ apply = ["defer"]
 github = "zsh-users/zsh-syntax-highlighting"
 apply = ["defer"]
 
+[plugins.atuin]
+inline = 'eval "$(atuin init zsh)"'
+
 # 6. FZF Tab (Optional - Defer it too if you want)
 [plugins.fzf-tab]
 github = "Aloxaf/fzf-tab"
