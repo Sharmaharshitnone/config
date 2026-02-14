@@ -26,7 +26,7 @@ bindkey '^ ' autosuggest-accept
 # --- 3.5. FZF INTEGRATION ---
 source <(fzf --zsh)
 export FZF_DEFAULT_OPTS="--height 70% --layout=reverse --border --inline-info"
-bindkey '^R' fzf-history-widget
+bindkey '^R' _atuin_search_widget
 bindkey '^T' fzf-tab
 
 # --- COMPINIT (Single init, XDG-compliant) ---
@@ -72,8 +72,9 @@ bindkey -M viins 'jk' vi-cmd-mode
 bindkey -v '^?' backward-delete-char
 
 # Fix Control-R (History Search) and Control-L (Clear Screen)
-bindkey -M viins '^r' fzf-history-widget
-bindkey -M vicmd '^r' fzf-history-widget
+# Atuin widgets for >=18.0 are `atuin-search` / `atuin-up-search`
+bindkey -M viins '^r' atuin-search
+bindkey -M vicmd '^r' atuin-search
 bindkey -M viins '^l' clear-screen
 bindkey -M vicmd '^l' clear-screen
 

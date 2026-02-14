@@ -53,6 +53,7 @@ CONFIG_DIRS=(
     "wallust"
     "speech-dispatcher"
     "Thunar"
+    "atuin"
 )
 
 log_info "Creating symlinks for config directories..."

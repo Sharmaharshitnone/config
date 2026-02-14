@@ -37,6 +37,9 @@ alias cw='cargo watch -x run'   # Requires cargo-watch
 alias cl='cargo clippy'
 alias cx='cargo run --example'
 
+alias ps="procs"
+alias pst="procs --tree"
+
 # --- 5. CP WORKFLOW ---
 function cpprun() {
     g++ -O3 -std=c++23 -Wall -Wextra -DLOCAL "$1" -o "${1%.*}" && ./"${1%.*}"

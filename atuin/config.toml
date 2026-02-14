@@ -1,0 +1,338 @@
+# =============================================================================
+# ATUIN CONFIGURATION — Tailored for Arch Linux / zsh / kitty / i3 / tmux
+# =============================================================================
+# Author: Principal Engineer config for kali's stack
+# Atuin version: 18.12.1
+# Location: ~/.config/atuin/config.toml
+# Docs: https://docs.atuin.sh/cli/configuration/config/
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# §1. CORE PATHS (defaults are fine; uncomment only if you move things)
+# ---------------------------------------------------------------------------
+# db_path = "~/.local/share/atuin/history.db"
+# key_path = "~/.local/share/atuin/key"
+# session_path = "~/.local/share/atuin/session"
+
+# ---------------------------------------------------------------------------
+# §2. LOCALE & TIME
+# ---------------------------------------------------------------------------
+# "us" = MM/DD, "uk" = DD/MM. Affects `atuin stats` date parsing.
+dialect = "us"
+
+# Timestamps display: "local" uses system tz.
+# Accepts offsets like "+5:30". Your Arch box uses localtime, so "local" is best.
+timezone = "local"
+
+# ---------------------------------------------------------------------------
+# §3. SYNC
+# ---------------------------------------------------------------------------
+# Auto-sync whenever a command fires (requires `atuin login` first).
+auto_sync = true
+
+# Skip phoning home for version checks — you control updates via pacman/yay.
+update_check = false
+
+# Official Atuin cloud. Self-host? Point to your own server here.
+sync_address = "https://api.atuin.sh"
+
+# Sync cadence. "5m" means after every command, if 5+ min elapsed since last sync.
+# "0" = sync after EVERY command (aggressive, fine on fast networks).
+sync_frequency = "5m"
+
+# ---------------------------------------------------------------------------
+# §4. SEARCH ENGINE
+# ---------------------------------------------------------------------------
+# "fuzzy" uses fzf-style syntax: ^prefix, suffix$, 'exact, !exclude
+# Other options: "prefix", "fulltext", "skim"
+search_mode = "fuzzy"
+
+# Up-arrow triggers a DIRECTORY-scoped search by default.
+# This is the killer feature: up-arrow recalls commands YOU ran in THIS folder.
+# Ctrl-r still opens global search.
+search_mode_shell_up_key_binding = "fuzzy"
+
+# ---------------------------------------------------------------------------
+# §5. FILTER ENGINE
+# ---------------------------------------------------------------------------
+# Global default for Ctrl-r: search everything across all hosts.
+filter_mode = "global"
+
+# Up-arrow default: only commands from THIS directory.
+# Perfect for project workflows — cd into a repo, press up, see only that repo's commands.
+filter_mode_shell_up_key_binding = "directory"
+
+# When inside a git repo, auto-activate workspace filtering.
+# This means Ctrl-r while in ~/work/config shows commands from ANY subdir of that repo.
+workspaces = true
+
+# ---------------------------------------------------------------------------
+# §6. UI / APPEARANCE
+# ---------------------------------------------------------------------------
+# "compact" = minimal chrome, more history rows. "full" = borders & headers.
+# "auto" = full when terminal is tall enough, compact when short.
+style = "compact"
+
+# Put the search bar at the top (feels like fzf, which you already use).
+invert = false
+
+# Maximum TUI height in lines. 0 = fullscreen. 40 = inline overlay.
+# With kitty at 35c height, 0 goes fullscreen which is clean with i3 tiling.
+inline_height = 0
+
+# Show the full command below when it's wider than terminal.
+show_preview = true
+
+# How many lines the preview can grow to. 4 is enough for most one-liners.
+# Increase to 8 if you write long shell scripts inline.
+max_preview_height = 4
+
+# Show the bottom bar with version, keymap hint, and total command count.
+show_help = true
+
+# Show "Search | Inspector" tabs. Useful until you memorize Ctrl-o.
+show_tabs = true
+
+# Show 1..9 beside list items for Alt-N quick selection.
+show_numeric_shortcuts = true
+
+# In compact mode, hide UI chrome when terminal has fewer than this many rows.
+auto_hide_height = 8
+
+# What happens when you press Esc:
+# "return-original" = restore the command line to what it was before search.
+# "return-query"    = leave your search text in the prompt.
+exit_mode = "return-original"
+
+# ---------------------------------------------------------------------------
+# §7. HISTORY CONTROL
+# ---------------------------------------------------------------------------
+# Custom display format for `atuin history list`
+history_format = "{time}\t{command}\t{duration}"
+
+# Regex filters — commands matching ANY of these are NEVER recorded.
+# Keeps your history clean of secrets, junk, and noise.
+history_filter = [
+    "^secret-cmd",                       # Generic secret prefix
+    "^innocuous-cmd .*--secret=.+",      # Flags with secret values
+    "^export (AWS_|GITHUB_|OPENAI_)",    # Env var exports with API keys
+    "^atuin login",                       # Your atuin credentials
+    "^pass ",                             # pass password manager
+    "^gpg --passphrase",                 # GPG with inline passphrase
+    "^curl.*(-u|--user)",                # curl with credentials
+    "^sshpass",                          # sshpass commands
+    "^mysql.*-p",                        # mysql with password flag
+]
+
+# Directories whose commands are never recorded.
+cwd_filter = [
+    "^/tmp/secret",
+]
+
+# Record commands that exit non-zero? true = yes (useful for debugging).
+store_failed = true
+
+# Auto-detect and scrub secrets (AWS keys, GitHub PATs, Slack tokens, etc.)
+secrets_filter = true
+
+# ---------------------------------------------------------------------------
+# §8. EXECUTION BEHAVIOR
+# ---------------------------------------------------------------------------
+# true = Enter immediately runs the command. Tab = edit first.
+# false = both Enter & Tab insert into prompt for editing.
+# true is the power-user default — you see it, you run it.
+enter_accept = true
+
+# Chain commands: when you type `git pull &&` then open Atuin,
+# it searches for the NEXT command in the chain instead of replacing the line.
+command_chaining = true
+
+# ---------------------------------------------------------------------------
+# §9. KEYMAP & CURSOR
+# ---------------------------------------------------------------------------
+# "auto" detects your shell's current vi/emacs mode.
+# Since you use zsh without explicit vi-mode, this defaults to emacs.
+# Options: "emacs", "vim-normal", "vim-insert", "auto"
+keymap_mode = "auto"
+
+# Visual cursor feedback per keymap mode.
+# blink-block for insert (you're typing), steady-block for normal (you're navigating).
+keymap_cursor = { emacs = "blink-block", vim_insert = "blink-block", vim_normal = "steady-block" }
+
+# Emacs-style word jumping (Ctrl-Left/Right). Matches your zsh default.
+# Alternative: "subl" for Sublime Text-style word boundaries.
+word_jump_mode = "emacs"
+
+# Characters that constitute a "word" for Ctrl-W, Ctrl-Left, etc.
+word_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+# Lines of context kept visible when you Page Up/Down.
+scroll_context_lines = 1
+
+# Reduce motion for accessibility. false = live-updating timestamps.
+prefers_reduced_motion = false
+
+# ---------------------------------------------------------------------------
+# §10. NETWORK TIMEOUTS
+# ---------------------------------------------------------------------------
+# These protect you from hanging if the sync server is unreachable.
+network_connect_timeout = 5   # Seconds to establish TCP connection
+network_timeout = 30          # Seconds for the full request/response cycle
+local_timeout = 2             # Seconds to acquire local SQLite lock
+
+# ---------------------------------------------------------------------------
+# §11. STATS
+# ---------------------------------------------------------------------------
+[stats]
+# Commands where the SUBCOMMAND matters for stats.
+# e.g., "git commit" is more useful than just "git".
+common_subcommands = [
+    "cargo",
+    "docker",
+    "git",
+    "go",
+    "ip",
+    "kubectl",
+    "nmcli",
+    "npm",
+    "pacman",
+    "pnpm",
+    "systemctl",
+    "tmux",
+    "yay",
+]
+
+# Commands stripped entirely from stats (they wrap other commands).
+common_prefix = [
+    "sudo",
+    "doas",
+]
+
+# Commands completely ignored in stats (too noisy / low-signal).
+ignored_commands = [
+    "cd",
+    "ls",
+    "la",
+    "ll",
+    "lt",
+    "z",
+    "clear",
+    "exit",
+    "pwd",
+]
+
+# ---------------------------------------------------------------------------
+# §12. SYNC V2 (Record Store)
+# ---------------------------------------------------------------------------
+[sync]
+# v2 sync is faster, stores richer metadata, and enables dotfiles sync.
+records = true
+
+# ---------------------------------------------------------------------------
+# §13. DOTFILES SYNC
+# ---------------------------------------------------------------------------
+[dotfiles]
+# Sync shell aliases across machines via `atuin dotfiles alias set/list/delete`.
+# Requires [sync].records = true.
+enabled = true
+
+# ---------------------------------------------------------------------------
+# §14. KEY BEHAVIOR
+# ---------------------------------------------------------------------------
+[keys]
+# Scrolling past the first/last entry exits the TUI. Feels natural.
+scroll_exits = true
+
+# Pressing Left at cursor position 0 exits TUI (back to shell).
+exit_past_line_start = true
+
+# Pressing Right at end of line = Tab (accept for editing).
+accept_past_line_end = true
+
+# Pressing Left at start = Tab. false = don't accidentally accept.
+accept_past_line_start = false
+
+# Backspace at start of line = accept? false = safe default.
+accept_with_backspace = false
+
+# ---------------------------------------------------------------------------
+# §15. PREVIEW STRATEGY
+# ---------------------------------------------------------------------------
+[preview]
+# "auto"   = preview only when the selected command exceeds terminal width.
+# "static" = preview sized to longest command in results (wastes space).
+# "fixed"  = always use max_preview_height (predictable but rigid).
+strategy = "auto"
+
+# ---------------------------------------------------------------------------
+# §16. DAEMON (Background Sync)
+# ---------------------------------------------------------------------------
+[daemon]
+# Daemon syncs in the background instead of blocking on every command.
+# Start it: `atuin daemon` or via systemd user service.
+enabled = false
+
+# Sync interval in seconds when daemon is running.
+sync_frequency = 300
+
+# Unix socket for client ↔ daemon IPC.
+# socket_path = "~/.local/share/atuin/atuin.sock"
+
+# Use systemd socket activation instead of binding the path directly.
+# Enable this if you set up: ~/.config/systemd/user/atuin-daemon.socket
+systemd_socket = false
+
+# ---------------------------------------------------------------------------
+# §17. THEME
+# ---------------------------------------------------------------------------
+[theme]
+# Built-in themes: "default", "autumn", "marine", "(none)"
+# Custom: drop a .toml in ~/.config/atuin/themes/ and reference its stem.
+name = "default"
+
+# Set true to debug theme loading issues.
+debug = false
+
+# Max parent-theme inheritance depth. 10 is overkill-safe.
+max_depth = 10
+
+# ---------------------------------------------------------------------------
+# §18. SEARCH TAB FILTERS
+# ---------------------------------------------------------------------------
+[search]
+# Order matters! First match wins when auto-selecting.
+# "workspace" is skipped when not in a git repo or workspaces=false.
+filters = [
+    "global",
+    "host",
+    "session",
+    "workspace",
+    "directory",
+    "session-preload",
+]
+
+# ---------------------------------------------------------------------------
+# §19. TMUX POPUP (requires tmux >= 3.2)
+# ---------------------------------------------------------------------------
+[tmux]
+# When inside tmux, Atuin launches in a tmux popup instead of inline.
+# This keeps your scrollback clean. Highly recommended with your tmux setup.
+enabled = true
+
+# Popup dimensions (percentage of terminal).
+width = "80%"
+height = "60%"
+
+# ---------------------------------------------------------------------------
+# §20. UI COLUMNS
+# ---------------------------------------------------------------------------
+[ui]
+# What columns show in the TUI, left to right.
+# " > " selection indicator is always first (implicit).
+# Your single-machine setup doesn't need "host". Show exit codes for debugging.
+columns = [
+    "exit",
+    "duration",
+    "time",
+    "command",
+]

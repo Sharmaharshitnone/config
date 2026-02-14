@@ -51,7 +51,7 @@ fi
 # YAY PACKAGES (AUR Only) - 15 packages
 log_info "Installing AUR packages via yay (15 packages)..."
 yay -S --needed --noconfirm \
-  activitywatch-bin antigravity-bin auto-cpufreq bibata-cursor-theme-bin \
+  antigravity auto-cpufreq bibata-cursor-theme-bin \
   cargo-lambda-bin cloudflare-warp-bin envycontrol fnm \
   google-chrome jetbrains-toolbox piper-tts tdl-bin \
   ufw-docker visual-studio-code-bin nordic-theme peaclock simple-mtpfs 
