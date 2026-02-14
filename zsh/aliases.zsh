@@ -55,35 +55,6 @@ alias myip='curl http://ipecho.net/plain; echo'
 
 # --- 7. CUSTOM FUNCTIONS ---
 
-# # Extract Archives
-# extract() {
-#     if [[ -z "$1" ]]; then echo "Usage: extract <file>"; return 1; fi
-#     if [[ ! -f "$1" ]]; then echo "Error: File not found: '$1'"; return 1; fi
-#     case "$1" in
-#         *.tar.gz|*.tgz) tar -xzvf "$1" ;;
-#         *.tar.bz2|*.tbz2) tar -xjvf "$1" ;;
-#         *.tar.xz|*.txz) tar -xJvf "$1" ;;
-#         *.tar) tar -xvf "$1" ;;
-#         *.zip|*.jar) unzip "$1" ;;
-#         *.7z) 7z x "$1" ;;
-#         *.rar) 7z x "$1" ;;
-#         *) echo "Unknown format: $1" ;;
-#     esac
-# }
-#
-# # Robust System Update (Merged from upclean.zsh)
-# update_clean() {
-#     echo ":: Starting System Update..."
-#     sudo pacman -Sy --needed --noconfirm archlinux-keyring
-#     yay -Syu --combinedupgrade --noprogressbar
-#     echo ":: Pruning Orphans..."
-#     yay -Yc --noconfirm
-#     echo ":: Cleaning Cache..."
-#     sudo paccache -rk2 2>&1
-#     echo ":: Done!"
-# }
-# alias upclean='update_clean'
-
 # pass
 alias p="pass"
 alias pp="pass git push"

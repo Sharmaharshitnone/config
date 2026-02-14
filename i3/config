@@ -26,6 +26,11 @@ workspace_auto_back_and_forth yes
 focus_on_window_activation smart
 for_window [all] title_window_icon on
 
+# ── Quick Navigation ──────────────────────────────────────────
+bindsym $mod+Tab workspace back_and_forth
+bindsym $mod+x [urgent=latest] focus
+bindsym $mod+minus scratchpad show
+bindsym $mod+Shift+minus move scratchpad
 # Rust: single daemon for alternating layouts + workspace naming
 exec_always --no-startup-id ~/.config/i3/scripts/i3-helper/target/release/i3-helper
 
@@ -36,8 +41,8 @@ bindsym $mod+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record.sh tog
 bindsym $mod+Control+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record-with-mic.sh toggle
 
 # ── Mode labels (displayed in bar when active) ────────────────
-set $app_launcher     Apps: [f]irefox [t]hunar [c]ode [g]chrome [m]usic [y]azi [b]c [o]bs [p]avuctl [v]lc [z]athura [i]gimp [x]vbox
-set $nvim_launcher    Nvim: [l]eetcode [w]ork [c]onfig [n]otes [t]asks [d]calcurse
+set $app_launcher     Apps: [f]irefox [t]hunar [c]ode [g]chrome [m]usic [y]azi [b]c [o]bs [p]avuctl [v]lc [z]athura [h]top [l]azygit [d]ocker [s]ound
+set $nvim_launcher    Nvim: [l]eetcode [w]ork [c]onfig [n]otes [t]asks [d]calcurse 
 set $copy_mode        Copy: [x]pass [b]chars [c]lipboard
 set $tiling_mode      Tiling: [a]lternating [v]ertical [h]orizontal [s]plitv [d]splith
 
@@ -58,8 +63,8 @@ gaps inner 10
 smart_gaps on
 hide_edge_borders smart
 
-bindsym $mod+Shift+plus gaps inner all plus 5
-bindsym $mod+Shift+minus gaps inner all minus 5
+bindsym $mod+Ctrl+plus gaps inner all plus 5
+bindsym $mod+Ctrl+minus gaps inner all minus 5
 
 
 # Use Mouse+$mod to drag floating windows to their wanted position

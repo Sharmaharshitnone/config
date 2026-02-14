@@ -29,8 +29,9 @@ return {
     lazygit_floating_window_use_plenary = true,
   },
   keys = {
-    { '<leader>lg', '<cmd>LazyGit<cr>', desc = 'LazyGit' },
-    { '<leader>lgc', '<cmd>LazyGitConfig<cr>', desc = 'LazyGit Config' },
-    { '<leader>lgf', '<cmd>LazyGitCurrentFile<cr>', desc = 'LazyGit Current File' },
+    { '<leader>gg', '<cmd>LazyGit<cr>', desc = 'LazyGit (full)' },
+    { '<leader>gf', '<cmd>LazyGitCurrentFile<cr>', desc = 'LazyGit Current File' },
+    { '<leader>gl', '<cmd>LazyGitFilter<cr>', desc = 'LazyGit Log (all commits)' },
+    { '<leader>gc', '<cmd>LazyGitConfig<cr>', desc = 'LazyGit Config' },
   },
 }
