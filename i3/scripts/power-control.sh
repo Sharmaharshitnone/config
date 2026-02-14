@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Wrapper to control both auto-cpufreq and TLP
 # Requires Polkit rules for passwordless execution

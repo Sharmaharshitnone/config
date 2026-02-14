@@ -63,7 +63,7 @@
 
     # The transparency of the window.  Range: [0; 100].
     # This setting will only work if a compositing manager is running (e.g. xcompmgr, compiz, etc.)
-    transparency = 10
+    transparency = 20
 
     # Draw a line of "separator_height" pixel height between two
     # notifications.
@@ -78,11 +78,11 @@
     scale = 0
 
     # Frame
-    frame_width = 2
-    # Gruvbox Red (Bright) for the main accent
-    frame_color = "#fb4934"
+    frame_width = 1
+    # Muted gray border — no accent color screaming at you
+    frame_color = "#555555"
     separator_color = frame
-    corner_radius = 10
+    corner_radius = 6
 
     # Icon settings
     icon_position = left
@@ -115,26 +115,24 @@
 [experimental]
     per_monitor_dpi = false
 
-# Urgency settings with Hybrid Gruvbox-Catppuccin
+# Urgency settings — Pure Dark Monochrome
 
 [urgency_low]
-    # Base (Catppuccin Mocha)
-    background = "#1e1e2e"
-    # Text (Catppuccin Text)
-    foreground = "#cdd6f4"
-    # Gruvbox Red Accent
-    frame_color = "#fb4934"
+    # Near-black background, muted gray text, subtle border
+    background = "#111111"
+    foreground = "#999999"
+    frame_color = "#333333"
     timeout = 5
 
 [urgency_normal]
-    background = "#1e1e2e"
-    foreground = "#cdd6f4"
-    frame_color = "#fb4934"
+    background = "#111111"
+    foreground = "#d4d4d4"
+    frame_color = "#555555"
     timeout = 10
 
 [urgency_critical]
-    # Deep Red for Critical
-    background = "#cc241d"
-    foreground = "#ebdbb2"
-    frame_color = "#fb4934"
+    # Dark red bg, bright text — only urgency that gets real color
+    background = "#331111"
+    foreground = "#d4d4d4"
+    frame_color = "#cc6666"
     timeout = 0

@@ -1,4 +1,5 @@
-# Config for Powerlevel10k with lean (Catppuccin Mocha) prompt style.
+# Config for Powerlevel10k — Pure Dark Monochrome theme.
+# Transparent bg, gray-scale text, no candy colors.
 #
 
 # Temporarily change options.
@@ -18,44 +19,58 @@
   # Zsh >= 5.1 is required.
   [[ $ZSH_VERSION == (5.<1->*|<6->.*) ]] || return
 
-  # Catppuccin Mocha Palette for Powerlevel10k
-  # This file defines the color palette used for the Mocha theme.
-  
-  # Core colors
-  typeset -g P10K_COLOR_BASE="#1e1e2e"   # Base
-  typeset -g P10K_COLOR_MANTLE="#181825" # Mantle
-  typeset -g P10K_COLOR_CRUST="#11111b"  # Crust
-  
-  # Text and Subtext
-  typeset -g P10K_COLOR_TEXT="#cdd6f4"     # Text
-  typeset -g P10K_COLOR_SUBTEXT1="#bac2de" # Subtext 1
-  typeset -g P10K_COLOR_SUBTEXT0="#a6adc8" # Subtext 0
-  
-  # Overlays
-  typeset -g P10K_COLOR_OVERLAY2="#9399b2" # Overlay 2
-  typeset -g P10K_COLOR_OVERLAY1="#7f849c" # Overlay 1
-  typeset -g P10K_COLOR_OVERLAY0="#6c7086" # Overlay 0
-  
-  # Surfaces
-  typeset -g P10K_COLOR_SURFACE2="#585b70" # Surface 2
-  typeset -g P10K_COLOR_SURFACE1="#45475a" # Surface 1
-  typeset -g P10K_COLOR_SURFACE0="#313244" # Surface 0
-  
-  # Accent colors
-  typeset -g P10K_COLOR_BLUE="#89b4fa"      # Blue
-  typeset -g P10K_COLOR_LAVENDER="#b4befe"  # Lavender
-  typeset -g P10K_COLOR_SAPPHIRE="#74c7ec"  # Sapphire
-  typeset -g P10K_COLOR_SKY="#89dceb"       # Sky
-  typeset -g P10K_COLOR_TEAL="#94e2d5"      # Teal
-  typeset -g P10K_COLOR_GREEN="#a6e3a1"     # Green
-  typeset -g P10K_COLOR_YELLOW="#f9e2af"    # Yellow
-  typeset -g P10K_COLOR_PEACH="#fab387"     # Peach
-  typeset -g P10K_COLOR_RED="#f38ba8"       # Red
-  typeset -g P10K_COLOR_MAROON="#eba0ac"    # Maroon
-  typeset -g P10K_COLOR_PINK="#f5c2e7"      # Pink
-  typeset -g P10K_COLOR_FLAMINGO="#f2cdcd"  # Flamingo
-  typeset -g P10K_COLOR_ROSEWATER="#f5e0dc" # Rosewater
-  typeset -g P10K_COLOR_MAUVE="#cba6f7"     # Mauve
+  # ─── Pure Dark Monochrome Palette ───────────────────────────────────
+  # No candy colors. Grays + muted white only. Transparent background.
+  #
+  # Spectrum:  bright → dim
+  #   #ffffff  (pure white — rarely used, active highlights)
+  #   #d4d4d4  (primary text)
+  #   #aaaaaa  (secondary / subtext)
+  #   #888888  (muted metadata)
+  #   #666666  (dim separators)
+  #   #444444  (faint / surface)
+  #   #333333  (very faint)
+  #
+  # Semantic (minimal color, only for git status):
+  #   #88cc88  (clean/ok — desaturated green)
+  #   #cccc66  (modified/warn — desaturated yellow)
+  #   #cc6666  (error/conflict — desaturated red)
+  #   #6699cc  (info/untracked — desaturated blue)
+
+  # Core backgrounds (unused — transparent)
+  typeset -g P10K_COLOR_BASE=""           # transparent
+  typeset -g P10K_COLOR_MANTLE=""         # transparent
+  typeset -g P10K_COLOR_CRUST=""          # transparent
+
+  # Text tiers
+  typeset -g P10K_COLOR_TEXT="#d4d4d4"     # Primary text
+  typeset -g P10K_COLOR_SUBTEXT1="#aaaaaa" # Secondary text
+  typeset -g P10K_COLOR_SUBTEXT0="#888888" # Muted text
+
+  # Overlay / surface tiers
+  typeset -g P10K_COLOR_OVERLAY2="#888888"
+  typeset -g P10K_COLOR_OVERLAY1="#666666"
+  typeset -g P10K_COLOR_OVERLAY0="#555555"
+
+  typeset -g P10K_COLOR_SURFACE2="#555555"
+  typeset -g P10K_COLOR_SURFACE1="#444444"
+  typeset -g P10K_COLOR_SURFACE0="#333333"
+
+  # Semantic colors (desaturated, dark-theme friendly)
+  typeset -g P10K_COLOR_BLUE="#6699cc"
+  typeset -g P10K_COLOR_LAVENDER="#d4d4d4"  # dirs — just bright white
+  typeset -g P10K_COLOR_SAPPHIRE="#6699cc"
+  typeset -g P10K_COLOR_SKY="#aaaaaa"
+  typeset -g P10K_COLOR_TEAL="#88aa88"
+  typeset -g P10K_COLOR_GREEN="#88cc88"
+  typeset -g P10K_COLOR_YELLOW="#cccc66"
+  typeset -g P10K_COLOR_PEACH="#ccaa66"
+  typeset -g P10K_COLOR_RED="#cc6666"
+  typeset -g P10K_COLOR_MAROON="#cc6666"
+  typeset -g P10K_COLOR_PINK="#aaaaaa"
+  typeset -g P10K_COLOR_FLAMINGO="#aaaaaa"
+  typeset -g P10K_COLOR_ROSEWATER="#bbbbbb"
+  typeset -g P10K_COLOR_MAUVE="#d4d4d4"     # git branch — bright white
 
   # The list of segments shown on the left. Fill it with the most important segments.
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
@@ -184,9 +199,8 @@
   # probably want to set POWERLEVEL9K_PROMPT_ADD_NEWLINE=false above and
   # POWERLEVEL9K_MULTILINE_FIRST_PROMPT_GAP_CHAR=' ' below.
   typeset -g POWERLEVEL9K_SHOW_RULER=true
-  # Rainbow ruler pattern (Red-Yellow-Green-Cyan-Blue-Magenta)
-  typeset -g POWERLEVEL9K_RULER_CHAR='%F{196}·%F{214}·%F{226}·%F{46}·%F{51}·%F{21}·%F{201}·'
-  typeset -g POWERLEVEL9K_RULER_FOREGROUND=
+  typeset -g POWERLEVEL9K_RULER_CHAR='─'
+  typeset -g POWERLEVEL9K_RULER_FOREGROUND=$P10K_COLOR_SURFACE1
 
   # Filler between left and right prompt on the first prompt line. You can set it to '·' or '─'
   # to make it easier to see the alignment between left and right prompt and to separate prompt
@@ -407,18 +421,18 @@
     
     if (( $1 )); then
       # Styling for up-to-date Git status.
-      local       meta='%F{#cba6f7}'     # default foreground
-      local      clean='%F{#cba6f7}'   # green foreground
-      local   modified='%F{#f9e2af}'  # yellow foreground
-      local  untracked='%F{#89b4fa}'   # blue foreground
-      local conflicted='%F{#f38ba8}'  # red foreground
+      local       meta='%F{#d4d4d4}'     # bright white
+      local      clean='%F{#d4d4d4}'     # bright white
+      local   modified='%F{#cccc66}'     # desaturated yellow
+      local  untracked='%F{#6699cc}'     # desaturated blue
+      local conflicted='%F{#cc6666}'     # desaturated red
     else
       # Styling for incomplete and stale Git status.
-      local       meta='%F{#9399b2}'  # grey foreground
-      local      clean='%F{#9399b2}'  # grey foreground
-      local   modified='%F{#9399b2}'  # grey foreground
-      local  untracked='%F{#9399b2}'  # grey foreground
-      local conflicted='%F{#9399b2}'  # grey foreground
+      local       meta='%F{#666666}'     # dim gray
+      local      clean='%F{#666666}'
+      local   modified='%F{#666666}'
+      local  untracked='%F{#666666}'
+      local conflicted='%F{#666666}'
     fi
 
     local res
@@ -530,7 +544,7 @@
   # Custom icon.
   # typeset -g POWERLEVEL9K_VCS_VISUAL_IDENTIFIER_EXPANSION='⭐'
   # Custom prefix.
-  typeset -g POWERLEVEL9K_VCS_PREFIX='%F{#bac2de}on '
+  typeset -g POWERLEVEL9K_VCS_PREFIX='%F{#666666}on '
 
   # Show status of repositories of these types. You can add svn and/or hg if you are
   # using them. If you do, your prompt may become slow even when your current directory
@@ -591,7 +605,7 @@
   # Custom icon.
   # typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_VISUAL_IDENTIFIER_EXPANSION='⭐'
   # Custom prefix.
-  typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_PREFIX='%F{#bac2de}took '
+  typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_PREFIX='%F{#666666}took '
 
   #######################[ background_jobs: presence of background jobs ]#######################
   # Don't show the number of background jobs.

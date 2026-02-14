@@ -1,0 +1,66 @@
+/* ─── Pure Dark Monochrome Firefox Theme ──────────────────── */
+/* Transparent/dark chrome, auto-hide toolbar, overlay sidebar */
+
+/* --- STRICT FOCUS-ONLY MODE --- */
+
+:root {
+  --uc-hide-amount: -40px;
+}
+
+#navigator-toolbox {
+  position: absolute !important;
+  width: 100%;
+  z-index: 1000;
+
+  margin-top: var(--uc-hide-amount);
+  opacity: 0;
+
+  transition: margin-top 0.0s ease, opacity 0.0s ease !important;
+}
+
+/* THE TRIGGER (Ctrl+L) */
+#navigator-toolbox:focus-within {
+  margin-top: 40vh !important;
+  opacity: 1;
+}
+
+/* Hide tabs when searching */
+#navigator-toolbox:focus-within #TabsToolbar {
+    display: none !important;
+}
+
+/* --- STATIC OVERLAY SIDEBAR (Keyboard Only) --- */
+
+/* 1. THE CONTAINER (Overlay Logic) */
+#sidebar-main, #sidebar-box {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    z-index: 2147483647 !important;
+
+    /* Pure dark monochrome — matches i3/dunst/rmpc */
+    background-color: #111111 !important;
+    color: #d4d4d4 !important;
+    box-shadow: 5px 0 20px rgba(0,0,0,0.6) !important;
+    border-right: 1px solid #333333 !important;
+
+    width: 400px !important;
+    min-width: 400px !important;
+}
+
+/* 4. DISABLE NATIVE COLLAPSE */
+#sidebar-main[collapsed="true"],
+#sidebar-box[collapsed="true"] {
+}
+
+/* 5. HIDE THE SPLITTER */
+.sidebar-splitter, #sidebar-splitter {
+    display: none !important;
+}
+
+/* 6. HIDE HEADER */
+#sidebar-header {
+    display: none !important;
+}

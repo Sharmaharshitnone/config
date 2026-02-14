@@ -9,7 +9,7 @@
     scrolloff: 2,
     max_fps: 60,
     wrap_navigation: true,
-    theme: "catppuccin-macchiato",
+    theme: "dark",
     on_song_change: ["~/.config/rmpc/scripts/notify"],
     // on_resize: ["~/.config/rmpc/scripts/onresize"],
     status_update_interval_ms: 1000,
@@ -46,6 +46,7 @@
             "5":       SwitchToTab("Albums"),
             "6":       SwitchToTab("Playlists"),
             "7":       SwitchToTab("Search"),
+            "8":       SwitchToTab("Art"),
             "z":       ToggleRepeat,
             "x":       ToggleRandom,
             "c":       ToggleSingle,
@@ -172,6 +173,23 @@
             name: "Search",
             border_type: None,
             pane: Pane(Search),
+        ),
+        (
+            name: "Art",
+            border_type: None,
+            pane: Split(
+                direction: Vertical,
+                panes: [
+                    (
+                        size: "60%",
+                        pane: Pane(AlbumArt),
+                    ),
+                    (
+                        size: "40%",
+                        pane: Pane(Lyrics),
+                    ),
+                ],
+            ),
         ),
         (
             name: "Testing",

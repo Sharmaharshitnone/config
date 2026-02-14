@@ -1,9 +1,9 @@
 icons_format = "<span size='large'>{icon}</span>"
 
 [theme]
-# theme = "ctp-mocha"
-theme = "gruvbox-dark"
-overrides = { idle_bg = "none", idle_fg = "#ebdbb2", info_bg = "none", info_fg = "#83a598", good_bg = "none", good_fg = "#b8bb26", warning_bg = "none", warning_fg = "#fabd2f", critical_bg = "none", critical_fg = "#fb4934", separator = "  ", separator_bg = "none", separator_fg = "none" } 
+# Pure dark monochrome — transparent bg, gray-scale text
+theme = "plain"
+overrides = { idle_bg = "none", idle_fg = "#d4d4d4", info_bg = "none", info_fg = "#aaaaaa", good_bg = "none", good_fg = "#888888", warning_bg = "none", warning_fg = "#cccc66", critical_bg = "none", critical_fg = "#cc6666", separator = "  ", separator_bg = "none", separator_fg = "none" } 
 
 [icons]
 icons = "material-nf"
@@ -48,8 +48,8 @@ cmd = "tmux select-window -t scratchpad:htop 2>/dev/null || tmux new-window -t s
 # 5. MEMORY
 [[block]]
 block = "memory"
-format = "<span size='large'></span> <span rise='1000'> $mem_used_percents</span>"
-format_alt = "<span size='large'></span> <span rise='1000'> $mem_used / $mem_total </span>"
+format = "<span size='large'></span><span rise='1000'> $mem_used_percents</span>"
+format_alt = "<span size='large'></span><span rise='1000'> $mem_used / $mem_total </span>"
 interval = 5
 warning_mem = 80
 critical_mem = 95

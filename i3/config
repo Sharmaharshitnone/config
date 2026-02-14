@@ -15,16 +15,15 @@ exec --no-startup-id dunst
 exec --no-startup-id sh -c 'DISPLAY=:0 clipmenud 2>/dev/null &'
 exec --no-startup-id udiskie --tray &
 exec --no-startup-id ~/.config/i3/scripts/start-polkit-agent.sh &
-exec --no-startup-id xwallpaper --zoom  /home/kali/Pictures/wallpapers/General/wallhaven-6llve6.png
+exec --no-startup-id xwallpaper --zoom ~/Pictures/wallpapers/General/wallhaven-6llve6.png
 exec --no-startup-id ~/.config/i3/scripts/multi-monitor.sh &
 exec_always --no-startup-id picom -b
 
-# Touchpad configuration - enable tap to click and proper button mapping
-exec --no-startup-id xinput set-prop "ELAN0420:00 04F3:3240 Touchpad" "libinput Tapping Enabled" 1
-exec --no-startup-id xinput set-prop "ETPS/2 Elantech Touchpad" "libinput Tapping Enabled" 1
+# Touchpad configuration - enable tap-to-click on all detected touchpads
+exec --no-startup-id bash -c 'for dev in $(xinput list --name-only | grep -i touchpad); do xinput set-prop "$dev" "libinput Tapping Enabled" 1 2>/dev/null; done'
 
 workspace_auto_back_and_forth yes
-focus_on_window_activation focus
+focus_on_window_activation smart
 for_window [all] title_window_icon on
 
 # Rust: single daemon for alternating layouts + workspace naming
@@ -36,12 +35,28 @@ bindsym $mod+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record.sh tog
 # For recording screen with microphone + system audio
 bindsym $mod+Control+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record-with-mic.sh toggle
 
+# ── Mode labels (displayed in bar when active) ────────────────
+set $app_launcher     Apps: [f]irefox [t]hunar [c]ode [g]chrome [m]usic [y]azi [b]c [o]bs [p]avuctl [v]lc [z]athura [i]gimp [x]vbox
+set $nvim_launcher    Nvim: [l]eetcode [w]ork [c]onfig [n]otes [t]asks [d]calcurse
+set $copy_mode        Copy: [x]pass [b]chars [c]lipboard
+set $tiling_mode      Tiling: [a]lternating [v]ertical [h]orizontal [s]plitv [d]splith
+
 include ~/.config/i3/config.d/*.conf
 
-bindsym $mod+Shift+Delete exec --no-startup-id shutdown -h now
-# for_window [class="^.*"] border pixel 1
+# Power: $mod+Shift+Delete → confirm before shutdown
+set $power_mode  Power: [s]hutdown [r]eboot [l]ock [Esc]cancel
+bindsym $mod+Shift+Delete mode "$power_mode"
+mode "$power_mode" {
+    bindsym s exec --no-startup-id shutdown -h now; mode "default"
+    bindsym r exec --no-startup-id reboot; mode "default"
+    bindsym l exec --no-startup-id i3lock; mode "default"
+    bindsym Escape mode "default"
+    bindsym Return mode "default"
+}
 
 gaps inner 10
+smart_gaps on
+hide_edge_borders smart
 
 bindsym $mod+Shift+plus gaps inner all plus 5
 bindsym $mod+Shift+minus gaps inner all minus 5
@@ -55,13 +70,11 @@ floating_modifier $mod
 tiling_drag modifier titlebar
 
 # start a terminal
-for_window [class="kitty"] border pixel 0
 bindsym $mod+Return exec kitty
 bindsym $mod+Control+Return exec kitty tmux attach
 bindsym $mod+Shift+Return exec open-term-same-dir
 
 
-# kill focused window
 # kill focused window
 bindsym $mod+Shift+q kill
 
@@ -119,7 +132,7 @@ bindsym $mod+8 workspace number $ws8
 bindsym $mod+9 workspace number $ws9
 bindsym $mod+0 workspace number $ws10
 
-# move focused container to workspacemod + gra
+# move focused container to workspace
 bindsym $mod+Shift+1 move container to workspace number $ws1
 bindsym $mod+Shift+2 move container to workspace number $ws2
 bindsym $mod+Shift+3 move container to workspace number $ws3
@@ -157,18 +170,18 @@ mode "resize" {
         bindsym $mod+r mode "default"
 }
 
-set $text      #cdd6f4
-set $subtext1  #bac2de
-set $base      #1e1e2e
-set $overlay1  #7f849c
-set $maroon    #eba0ac
+set $text      #d4d4d4
+set $subtext1  #999999
+set $base      #111111
+set $overlay1  #666666
+set $maroon    #cc6666
 
 bindsym $mod+r mode "resize"
 bindsym $mod+m bar mode toggle
 
 
 bar {
-        i3bar_command i3bar --t
+        i3bar_command i3bar --transparency
         status_command i3status-rs ~/.config/i3status-rust/config.toml 
         font pango:JetBrainsMono Nerd Font 11
         strip_workspace_numbers no
