@@ -2,6 +2,10 @@
 # nsxiv key-handler - Handles key bindings for nsxiv image viewer
 # Usage: Press Ctrl+x in nsxiv, then press a key to trigger actions
 
+# Source shared dmenu theme (provides dmenu_themed function)
+_dmenu_theme="${XDG_CONFIG_HOME:-$HOME/.config}/i3/scripts/dmenu-theme.sh"
+[ -f "$_dmenu_theme" ] && . "$_dmenu_theme"
+
 # Helper function to check if command is available
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -32,10 +36,10 @@ get_destdir() {
     
     if [ -f "$bm_dirs_file" ]; then
         # Use bookmark directories if available
-        destdir=$(sed "s/#.*$//;/^\s*$/d" "$bm_dirs_file" | awk '{print $2}' | dmenu -l 20 -i -p "$action file(s) to where?" | sed "s|~|$HOME|g")
+        destdir=$(sed "s/#.*$//;/^\s*$/d" "$bm_dirs_file" | awk '{print $2}' | dmenu_themed -l 20 -p "$action file(s) to where?" | sed "s|~|$HOME|g")
     else
         # Fallback to common directories
-        destdir=$(printf "%s\n" "$HOME/Downloads" "$HOME/Documents" "$HOME/Pictures" "$HOME/Desktop" "/tmp" | dmenu -l 10 -i -p "$action file(s) to where?")
+        destdir=$(printf "%s\n" "$HOME/Downloads" "$HOME/Documents" "$HOME/Pictures" "$HOME/Desktop" "/tmp" | dmenu_themed -l 10 -p "$action file(s) to where?")
     fi
     
     echo "$destdir"

@@ -458,6 +458,28 @@ find "$PARENT_CONFIG_DIR" -type f \( -name "*.sh" -o -name "*.py" \) 2>/dev/null
     fi
 done
 
+# === BUILD i3-helper (Rust binary) ===
+I3_HELPER_DIR="$PARENT_CONFIG_DIR/i3/scripts/i3-helper"
+if [[ -f "$I3_HELPER_DIR/Cargo.toml" ]]; then
+    log_info "Building i3-helper (Rust binary for i3wm auto-tiling + workspace icons)..."
+    if command -v cargo &>/dev/null; then
+        if (cd "$I3_HELPER_DIR" && cargo build --release 2>&1); then
+            BINARY="$I3_HELPER_DIR/target/release/i3-helper"
+            if [[ -x "$BINARY" ]]; then
+                SIZE=$(du -h "$BINARY" | cut -f1)
+                log_info "  ✓ i3-helper built successfully ($SIZE)"
+            fi
+        else
+            log_warn "  ✗ i3-helper build failed (check Rust toolchain)"
+        fi
+    else
+        log_warn "  ✗ cargo not found — install Rust toolchain first (rustup)"
+        log_warn "    Run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    fi
+else
+    log_warn "  i3-helper source not found (skipping build)"
+fi
+
 log_info "✓ Dotfile restoration complete!"
 log_info ""
 log_info "Symlink mapping:"

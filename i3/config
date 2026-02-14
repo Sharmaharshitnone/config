@@ -18,15 +18,17 @@ exec --no-startup-id ~/.config/i3/scripts/start-polkit-agent.sh &
 exec --no-startup-id xwallpaper --zoom  /home/kali/Pictures/wallpapers/General/wallhaven-6llve6.png
 exec --no-startup-id ~/.config/i3/scripts/multi-monitor.sh &
 exec_always --no-startup-id picom -b
-exec_always --no-startup-id ~/.config/i3/scripts/workspace-names.py &
+
 # Touchpad configuration - enable tap to click and proper button mapping
 exec --no-startup-id xinput set-prop "ELAN0420:00 04F3:3240 Touchpad" "libinput Tapping Enabled" 1
 exec --no-startup-id xinput set-prop "ETPS/2 Elantech Touchpad" "libinput Tapping Enabled" 1
+
 workspace_auto_back_and_forth yes
 focus_on_window_activation focus
 for_window [all] title_window_icon on
 
-exec_always --no-startup-id ~/.config/i3/scripts/alternating_layouts.py
+# Rust: single daemon for alternating layouts + workspace naming
+exec_always --no-startup-id ~/.config/i3/scripts/i3-helper/target/release/i3-helper
 
 # For recording screen
 bindsym $mod+Shift+Print exec --no-startup-id ~/.config/i3/scripts/record.sh toggle
@@ -36,10 +38,10 @@ bindsym $mod+Control+Shift+Print exec --no-startup-id ~/.config/i3/scripts/recor
 
 include ~/.config/i3/config.d/*.conf
 
-bindsym $mod+Shift+s exec --no-startup-id shutdown -h now
+bindsym $mod+Shift+Delete exec --no-startup-id shutdown -h now
 # for_window [class="^.*"] border pixel 1
 
-gaps inner 20
+gaps inner 10
 
 bindsym $mod+Shift+plus gaps inner all plus 5
 bindsym $mod+Shift+minus gaps inner all minus 5
@@ -58,10 +60,13 @@ bindsym $mod+Return exec kitty
 bindsym $mod+Control+Return exec kitty tmux attach
 bindsym $mod+Shift+Return exec open-term-same-dir
 
+
+# kill focused window
 # kill focused window
 bindsym $mod+Shift+q kill
-# start dmenu (a program launcher)
-bindsym $mod+d exec --no-startup-id dmenu_run
+
+# start dmenu (a program launcher) — theme from shared dmenu-theme.sh
+bindsym $mod+d exec --no-startup-id bash -c '. ~/.config/i3/scripts/dmenu-theme.sh && dmenu_run_themed'
 
 # change focus
 bindsym $mod+h focus left
@@ -164,7 +169,7 @@ bindsym $mod+m bar mode toggle
 
 bar {
         i3bar_command i3bar --t
-        status_command  i3status-rs ~/.config/i3status-rust/config.toml 
+        status_command i3status-rs ~/.config/i3status-rust/config.toml 
         font pango:JetBrainsMono Nerd Font 11
         strip_workspace_numbers no
         position top
@@ -175,13 +180,13 @@ bar {
          colors {
         # background #282828
 	background #00000000
-        statusline #00000000
+        statusline #cdd6f4
         separator #00000000
 
-        # target             border      bg          text
-        focused_workspace    $base       #00000000    $text
+        # target             border          bg            text
+        focused_workspace    $base         #00000000    $text
         active_workspace     #00000000   #00000000    $subtext1
-        inactive_workspace   #00000000   #00000000     $overlay1
+        inactive_workspace   #00000000   #00000000    $overlay1
         urgent_workspace     #00000000   #00000000    $maroon
     }
 

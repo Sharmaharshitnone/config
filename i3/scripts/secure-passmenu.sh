@@ -1,14 +1,13 @@
 #!/bin/bash
 
+# Source shared dmenu theme
+. ~/.config/i3/scripts/dmenu-theme.sh
+
 # 1. Temporarily disable clipmenud monitoring
 clipctl disable
 
-# 2. Run the passmenu utility
-# The output (the selected password) will be placed in the clipboard by passmenu,
-# but clipmenud will not record it in the history file because it is disabled.
-passmenu
+# 2. Run passmenu with themed dmenu
+passmenu -nb "$DMENU_NB" -nf "$DMENU_NF" -sb "$DMENU_SB" -sf "$DMENU_SF" -fn "$DMENU_FN"
 
 # 3. Re-enable clipmenud monitoring
-# The 'passmenu' command clears the clipboard after a short timeout,
-# but re-enabling clipmenud ensures it starts capturing other copies again.
 clipctl enable

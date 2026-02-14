@@ -108,7 +108,7 @@ update = true
 # 5d. MUSIC
 [[block]]
 block = "music"
-format = "$icon {$combo.str(max_w:25,rot_interval:0.5) $play|}"
+format = "$icon {<span size='x-large'>$play</span>}"
 
 [[block.click]]
 button = "left"
@@ -186,7 +186,7 @@ cmd = "kitty -e zsh -ic warp"
 [[block]]
 block = "custom"
 command = "pgrep -x picom >/dev/null && echo '' || echo ''"
-format = "<span size='large'>$text</span> "
+format = "<span size='x-large'>$text</span> "
 interval = "once"
 signal = 13
 [[block.click]]
