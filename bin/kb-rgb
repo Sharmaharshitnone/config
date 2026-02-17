@@ -1,0 +1,270 @@
+#!/bin/sh
+# kb-rgb — COLORFUL P15 23 keyboard RGB controller
+# Uses acpi_call to send Clevo WMI commands (WMBB method 0x67)
+# Byte order: 0xFz_BB_RR_GG (zone, blue, red, green)
+#
+# Dependencies: acpi_call-dkms (kernel module)
+# Usage:
+#   kb-rgb color RRGGBB        — set all zones to hex color
+#   kb-rgb color RR GG BB      — set all zones to decimal R G B
+#   kb-rgb zone 0|1|2 RRGGBB   — set single zone (0=left, 1=center, 2=right)
+#   kb-rgb brightness 0-100    — set brightness (0=off, 100=max)
+#   kb-rgb off                 — turn off keyboard backlight
+#   kb-rgb on                  — restore last color (or white) at full brightness
+#   kb-rgb cycle               — cycle through preset colors
+#   kb-rgb preset NAME         — apply a named preset
+#   kb-rgb status              — show current state
+
+ACPI_CALL="/proc/acpi/call"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/kb-rgb"
+STATE_FILE="$STATE_DIR/state"
+
+# ── Helpers ──────────────────────────────────────────────────
+die() { printf 'kb-rgb: %s\n' "$1" >&2; exit 1; }
+
+wmi_cmd() {
+    printf '\_SB_.WMI_.WMBB 0 0x67 %s' "$1" > "$ACPI_CALL" 2>/dev/null ||
+        die "Failed to write to $ACPI_CALL. Run with sudo or add udev rule."
+}
+
+# Convert standard RGB hex to Clevo BRG format
+# Input: RRGGBB (hex string without #)
+# Output: 0xBBRRGG
+rgb_to_brg() {
+    hex=$(printf '%s' "$1" | tr -d '#' | tr 'a-f' 'A-F')
+    [ ${#hex} -eq 6 ] || die "Invalid hex color: $1 (need 6 hex digits)"
+    r=$(printf '%d' "0x${hex%????}")
+    _tmp=${hex#??}
+    g=$(printf '%d' "0x${_tmp%??}")
+    b=$(printf '%d' "0x${_tmp#??}")
+    printf '0x%02X%02X%02X' "$b" "$r" "$g"
+}
+
+# Save state to file
+save_state() {
+    mkdir -p "$STATE_DIR"
+    printf '%s\n%s\n' "$1" "$2" > "$STATE_FILE"  # color brightness
+}
+
+# Load state from file — returns "RRGGBB brightness"
+load_state() {
+    if [ -f "$STATE_FILE" ]; then
+        head -2 "$STATE_FILE" | tr '\n' ' '
+    else
+        printf 'FFFFFF 100'
+    fi
+}
+
+# Set a single zone color. Zone: 0=left, 1=center, 2=right
+set_zone() {
+    zone="$1"
+    brg="$2"
+    zone_prefix=$(printf '0xF%d' "$zone")
+    cmd=$(printf '%s%s' "$zone_prefix" "${brg#0x}")
+    wmi_cmd "$cmd"
+}
+
+# Set all 3 zones to the same color (hex RRGGBB)
+set_all_zones() {
+    brg=$(rgb_to_brg "$1")
+    set_zone 0 "$brg"
+    set_zone 1 "$brg"
+    set_zone 2 "$brg"
+}
+
+# Set brightness 0-100 (mapped to EC 0-200 range)
+set_brightness() {
+    val="$1"
+    [ "$val" -ge 0 ] && [ "$val" -le 100 ] 2>/dev/null || die "Brightness must be 0-100"
+    # EC brightness range is 0-200, map linearly
+    ec_val=$(( val * 2 ))
+    cmd=$(printf '0xF40000%02X' "$ec_val")
+    wmi_cmd "$cmd"
+}
+
+# ── Presets ──────────────────────────────────────────────────
+apply_preset() {
+    case "$1" in
+        red)     set_all_zones "FF0000" ;;
+        green)   set_all_zones "00FF00" ;;
+        blue)    set_all_zones "0000FF" ;;
+        white)   set_all_zones "FFFFFF" ;;
+        cyan)    set_all_zones "00FFFF" ;;
+        magenta) set_all_zones "FF00FF" ;;
+        yellow)  set_all_zones "FFFF00" ;;
+        orange)  set_all_zones "FF6600" ;;
+        purple)  set_all_zones "8800FF" ;;
+        pink)    set_all_zones "FF1493" ;;
+        warm)    set_all_zones "FFB366" ;;
+        ice)     set_all_zones "66CCFF" ;;
+        # Multi-zone presets
+        rainbow)
+            brg_r=$(rgb_to_brg "FF0000"); set_zone 0 "$brg_r"
+            brg_g=$(rgb_to_brg "00FF00"); set_zone 1 "$brg_g"
+            brg_b=$(rgb_to_brg "0000FF"); set_zone 2 "$brg_b"
+            ;;
+        flag)
+            brg_l=$(rgb_to_brg "FF6600"); set_zone 0 "$brg_l"
+            brg_m=$(rgb_to_brg "FFFFFF"); set_zone 1 "$brg_m"
+            brg_r=$(rgb_to_brg "00CC00"); set_zone 2 "$brg_r"
+            ;;
+        *)
+            die "Unknown preset: $1. Available: red green blue white cyan magenta yellow orange purple pink warm ice rainbow flag"
+            ;;
+    esac
+    set_brightness 100
+    save_state "$1" 100
+}
+
+# ── Cycle colors ─────────────────────────────────────────────
+CYCLE_FILE="$STATE_DIR/cycle_index"
+CYCLE_COLORS="FF0000 00FF00 0000FF FFFFFF 00FFFF FF00FF FFFF00 FF6600 8800FF"
+
+do_cycle() {
+    idx=0
+    [ -f "$CYCLE_FILE" ] && idx=$(cat "$CYCLE_FILE")
+    set -- $CYCLE_COLORS
+    total=$#
+    idx=$(( (idx + 1) % total ))
+    shift $idx
+    color="$1"
+    set_all_zones "$color"
+    set_brightness 100
+    printf '%d' "$idx" > "$CYCLE_FILE"
+    save_state "$color" 100
+    printf 'Color: #%s\n' "$color"
+}
+
+# ── dmenu/rofi picker ───────────────────────────────────────
+do_pick() {
+    presets="red\ngreen\nblue\nwhite\ncyan\nmagenta\nyellow\norange\npurple\npink\nwarm\nice\nrainbow\nflag\ncustom"
+    if command -v rofi >/dev/null 2>&1; then
+        choice=$(printf '%b' "$presets" | rofi -dmenu -p "KB Color")
+    elif command -v dmenu >/dev/null 2>&1; then
+        choice=$(printf '%b' "$presets" | dmenu -p "KB Color:")
+    else
+        die "No rofi or dmenu found"
+    fi
+    [ -z "$choice" ] && exit 0
+    if [ "$choice" = "custom" ]; then
+        if command -v zenity >/dev/null 2>&1; then
+            hex=$(zenity --color-selection --title="Keyboard Color" 2>/dev/null)
+            [ -z "$hex" ] && exit 0
+            # zenity returns rgb(r,g,b) or #rrggbb
+            case "$hex" in
+                rgb*)
+                    hex=$(printf '%s' "$hex" | sed 's/rgb(\([0-9]*\),\([0-9]*\),\([0-9]*\))/\1 \2 \3/')
+                    r=$(printf '%s' "$hex" | cut -d' ' -f1)
+                    g=$(printf '%s' "$hex" | cut -d' ' -f2)
+                    b=$(printf '%s' "$hex" | cut -d' ' -f3)
+                    hex=$(printf '%02X%02X%02X' "$r" "$g" "$b")
+                    ;;
+                \#*) hex="${hex#\#}" ;;
+            esac
+            set_all_zones "$hex"
+            set_brightness 100
+            save_state "$hex" 100
+        else
+            die "zenity not installed — can't pick custom color"
+        fi
+    else
+        apply_preset "$choice"
+    fi
+}
+
+# ── Status ───────────────────────────────────────────────────
+show_status() {
+    state=$(load_state)
+    color=$(printf '%s' "$state" | cut -d' ' -f1)
+    bright=$(printf '%s' "$state" | cut -d' ' -f2)
+    printf 'Color:      #%s\nBrightness: %s%%\n' "$color" "$bright"
+}
+
+# ── Main ─────────────────────────────────────────────────────
+[ -w "$ACPI_CALL" ] || {
+    # Try sudo silently
+    if [ "$(id -u)" -ne 0 ]; then
+        exec sudo "$0" "$@"
+    fi
+}
+
+case "${1:-}" in
+    color|c)
+        shift
+        if [ $# -eq 1 ]; then
+            hex=$(printf '%s' "$1" | tr -d '#')
+            set_all_zones "$hex"
+            set_brightness 100
+            save_state "$hex" 100
+        elif [ $# -eq 3 ]; then
+            hex=$(printf '%02X%02X%02X' "$1" "$2" "$3")
+            set_all_zones "$hex"
+            set_brightness 100
+            save_state "$hex" 100
+        else
+            die "Usage: kb-rgb color RRGGBB  or  kb-rgb color R G B"
+        fi
+        ;;
+    zone|z)
+        shift
+        [ $# -ge 2 ] || die "Usage: kb-rgb zone 0|1|2 RRGGBB"
+        zone="$1"; hex=$(printf '%s' "$2" | tr -d '#')
+        brg=$(rgb_to_brg "$hex")
+        set_zone "$zone" "$brg"
+        ;;
+    brightness|b|bright)
+        shift
+        set_brightness "${1:?Usage: kb-rgb brightness 0-100}"
+        state=$(load_state)
+        color=$(printf '%s' "$state" | cut -d' ' -f1)
+        save_state "$color" "$1"
+        ;;
+    off|0)
+        set_brightness 0
+        ;;
+    on|1)
+        state=$(load_state)
+        color=$(printf '%s' "$state" | cut -d' ' -f1)
+        bright=$(printf '%s' "$state" | cut -d' ' -f2)
+        [ -z "$color" ] && color="FFFFFF"
+        [ -z "$bright" ] || [ "$bright" = "0" ] && bright=100
+        set_all_zones "$color"
+        set_brightness "$bright"
+        ;;
+    cycle)
+        do_cycle
+        ;;
+    preset|p)
+        shift
+        apply_preset "${1:?Usage: kb-rgb preset NAME}"
+        ;;
+    pick)
+        do_pick
+        ;;
+    status|s)
+        show_status
+        ;;
+    help|--help|-h)
+        cat <<'EOF'
+kb-rgb — COLORFUL P15 23 Keyboard RGB Controller
+
+USAGE:
+  kb-rgb color RRGGBB         Set all zones to hex color
+  kb-rgb color R G B           Set all zones (decimal 0-255)
+  kb-rgb zone 0|1|2 RRGGBB    Set single zone (0=left 1=center 2=right)
+  kb-rgb brightness 0-100      Set brightness
+  kb-rgb off                   Turn off backlight
+  kb-rgb on                    Restore last color/brightness
+  kb-rgb cycle                 Cycle through preset colors
+  kb-rgb preset NAME           Apply preset (red green blue white cyan
+                                magenta yellow orange purple pink warm
+                                ice rainbow flag)
+  kb-rgb pick                  Interactive color picker (rofi/dmenu)
+  kb-rgb status                Show current state
+  kb-rgb help                  This help
+EOF
+        ;;
+    *)
+        die "Unknown command: ${1:-}. Run 'kb-rgb help' for usage."
+        ;;
+esac
