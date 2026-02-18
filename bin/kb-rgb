@@ -11,6 +11,16 @@
 #
 # State:    $XDG_STATE_HOME/kb-rgb/  (color, brightness, effects)
 # Sudoers:  /etc/sudoers.d/kb-rgb   (NOPASSWD for dunst hooks)
+#
+# Security Model:
+#   Ownership:  root:root
+#   Mode:       0755  (world-executable, root-writable only)
+#   Why root-owned?
+#   This script writes to /proc/acpi/call (hardware register access).
+#   It is invoked via NOPASSWD sudoers by dunst and i3 keybinds.
+#   Making the file root-owned means only root can tamper with the
+#   escalation logic — a non-root attacker cannot inject arbitrary
+#   code that runs as root through the NOPASSWD rule.
 # ══════════════════════════════════════════════════════════════
 set -euo pipefail
 

@@ -49,21 +49,36 @@ setup_sudoers() {
     info "  → $(basename "$sudoers_file") → NOPASSWD $real_path"
 }
 
+# ── 0. Secure NOPASSWD scripts (root:root 0755) ──────────────────────────────
+# Must run before sudoers setup — chown changes the realpath stat.
+secure_script() {
+    local script="$1"
+    local real_path
+    real_path=$(realpath "$script") || die "Cannot resolve $script"
+    local cur_owner cur_mode
+    cur_owner=$(stat -c '%U:%G' "$real_path" 2>/dev/null || echo "?")
+    cur_mode=$(stat -c '%a' "$real_path" 2>/dev/null || echo "?")
+    if [[ "$cur_owner" == "root:root" && "$cur_mode" == "755" ]]; then
+        info "  ✓ $(basename "$real_path") already root:root 0755"
+        return
+    fi
+    sudo chown root:root "$real_path"
+    sudo chmod 0755 "$real_path"
+    info "  → $(basename "$real_path") secured: root:root 0755"
+}
+
+info "Securing NOPASSWD scripts..."
+secure_script "$CONFIG_DIR/bin/kb-rgb"
+secure_script "$CONFIG_DIR/bin/warp"
+
 info "Updating sudoers rules..."
 setup_sudoers "$CONFIG_DIR/bin/kb-rgb" /etc/sudoers.d/kb-rgb
 setup_sudoers "$CONFIG_DIR/bin/warp"   /etc/sudoers.d/warp
 
-# ── 2. Patch dunst glow hook ──────────────────────────────────────────────────
+# ── 2. Patch i3 keyboard-rgb.conf ────────────────────────────────────────────
+# NOTE: dunst/scripts/kb-rgb-glow is now self-locating (uses realpath relative
+# to $0) and does NOT need patching here. It works from any clone location.
 KB_REAL=$(realpath "$CONFIG_DIR/bin/kb-rgb")
-GLOW_HOOK="$CONFIG_DIR/dunst/scripts/kb-rgb-glow"
-if [[ -f "$GLOW_HOOK" ]]; then
-    sed -i "s|exec sudo [^ ]*/kb-rgb glow-flash|exec sudo $KB_REAL glow-flash|g" "$GLOW_HOOK"
-    info "Patched dunst glow hook → $KB_REAL"
-else
-    warn "dunst glow hook not found: $GLOW_HOOK (skipping)"
-fi
-
-# ── 3. Patch i3 keyboard-rgb.conf ────────────────────────────────────────────
 KB_I3CONF="$CONFIG_DIR/i3/config.d/keyboard-rgb.conf"
 if [[ -f "$KB_I3CONF" ]]; then
     sed -i "s|set \\\$kb .*|set \$kb $KB_REAL|" "$KB_I3CONF"

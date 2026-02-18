@@ -10,4 +10,10 @@ TOGGLE="${XDG_STATE_HOME:-$HOME/.local/state}/kb-rgb/glow_enabled"
 
 # Prefer env var (modern dunst), fall back to positional arg
 URGENCY="${DUNST_URGENCY:-${5:-normal}}"
-exec sudo /home/kali/work/config/bin/kb-rgb glow-flash "$URGENCY"
+
+# Self-locating: resolve kb-rgb relative to this script's position.
+# This eliminates any hardcoded absolute path — the hook works from any clone
+# location without patching. update-paths.sh no longer needs to touch this file.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+KB_RGB="$(realpath "$SCRIPT_DIR/../../bin/kb-rgb")"
+exec sudo "$KB_RGB" glow-flash "$URGENCY"

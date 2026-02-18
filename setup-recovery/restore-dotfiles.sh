@@ -538,6 +538,19 @@ else
     log_warn "  ly-configs not found (skipping)"
 fi
 
+# === ~/.icons/default/index.theme ===
+# Without this, X11 apps that bypass GTK/Xresources fall back to /usr/share/icons/default
+# (usually Adwaita). This file forces them to inherit Bibata-Modern-Ice instead.
+ICONS_DEFAULT="$HOME/.icons/default/index.theme"
+if [[ -f "$ICONS_DEFAULT" ]] && grep -q "Bibata-Modern-Ice" "$ICONS_DEFAULT" 2>/dev/null; then
+    log_info "✓ ~/.icons/default/index.theme already set to Bibata-Modern-Ice"
+else
+    mkdir -p "$HOME/.icons/default"
+    printf '[Icon Theme]\nName=Default\nComment=X11 cursor theme fallback override\nInherits=Bibata-Modern-Ice\n' \
+        > "$ICONS_DEFAULT"
+    log_info "→ ~/.icons/default/index.theme (Bibata-Modern-Ice X11 fallback)"
+fi
+
 # === SUDO RULES FOR kb-rgb AND warp ===
 # These scripts require NOPASSWD sudo. The sudoers entry must use the *canonical*
 # (realpath-resolved) path of the script, not a symlink. We generate the rules
@@ -561,23 +574,38 @@ setup_sudoers() {
     log_info "  → $sudoers_file : NOPASSWD $real_path"
 }
 
+# === SECURITY: root-own the NOPASSWD scripts (0755 root:root) ===
+# Prevents non-root attacker from modifying scripts that run via NOPASSWD sudo.
+# See Security Model comment in bin/warp and bin/kb-rgb.
+secure_script() {
+    local script="$1"
+    local real_path
+    real_path=$(realpath "$script" 2>/dev/null) || return
+    local cur_owner cur_mode
+    cur_owner=$(stat -c '%U:%G' "$real_path" 2>/dev/null || echo "?")
+    cur_mode=$(stat -c '%a' "$real_path" 2>/dev/null || echo "?")
+    if [[ "$cur_owner" == "root:root" && "$cur_mode" == "755" ]]; then
+        log_info "  ✓ $(basename "$real_path") already root:root 0755"
+        return
+    fi
+    sudo chown root:root "$real_path"
+    sudo chmod 0755 "$real_path"
+    log_info "  → $(basename "$real_path") secured: root:root 0755"
+}
+
+log_info "Securing NOPASSWD scripts (root:root 0755)..."
+secure_script "$PARENT_CONFIG_DIR/bin/kb-rgb"
+secure_script "$PARENT_CONFIG_DIR/bin/warp"
+
 log_info "Setting up NOPASSWD sudoers rules..."
 setup_sudoers "$PARENT_CONFIG_DIR/bin/kb-rgb" /etc/sudoers.d/kb-rgb
 setup_sudoers "$PARENT_CONFIG_DIR/bin/warp"   /etc/sudoers.d/warp
 
-# === GENERATE MACHINE-LOCAL CONFIG: dunst glow hook & i3 kb path ===
-# These two files contain absolute paths to kb-rgb that differ between machines.
-# We patch them here using the real canonical path so they always work.
+# === GENERATE MACHINE-LOCAL CONFIG: i3 kb path ===
+# dunst/scripts/kb-rgb-glow is now self-locating (uses realpath relative to $0)
+# and needs NO patching. Only keyboard-rgb.conf still requires a fixed path.
 KB_REAL=$(realpath "$PARENT_CONFIG_DIR/bin/kb-rgb" 2>/dev/null || echo "")
 if [[ -n "$KB_REAL" ]]; then
-    # dunst/scripts/kb-rgb-glow  —  fix hardcoded path in exec line
-    GLOW_HOOK="$PARENT_CONFIG_DIR/dunst/scripts/kb-rgb-glow"
-    if [[ -f "$GLOW_HOOK" ]]; then
-        # Replace any absolute path preceding "kb-rgb glow-flash" with the real one
-        sed -i "s|exec sudo [^ ]*/kb-rgb glow-flash|exec sudo $KB_REAL glow-flash|g" "$GLOW_HOOK"
-        log_info "  → dunst/scripts/kb-rgb-glow patched → $KB_REAL"
-    fi
-
     # i3/config.d/keyboard-rgb.conf  —  fix set \$kb line
     KB_I3CONF="$PARENT_CONFIG_DIR/i3/config.d/keyboard-rgb.conf"
     if [[ -f "$KB_I3CONF" ]]; then

@@ -31,12 +31,16 @@ log_info "Setting up MPD directories..."
 mkdir -p ~/.local/share/mpd/playlists
 mkdir -p ~/Music
 
-# Create FIFO for visualizer (cava)
-if [ -e /tmp/mpd.fifo ]; then
-    rm -f /tmp/mpd.fifo
+# Create FIFO for visualizer (cava) — idempotent: only recreate if not already a FIFO.
+# Destroying a live FIFO while MPD is running causes cava to miss audio.
+if [[ ! -p /tmp/mpd.fifo ]]; then
+    [[ -e /tmp/mpd.fifo ]] && rm -f /tmp/mpd.fifo
+    mkfifo /tmp/mpd.fifo
+    chmod 644 /tmp/mpd.fifo
+    log_info "  ✓ Created /tmp/mpd.fifo"
+else
+    log_info "  ✓ /tmp/mpd.fifo already exists (skipped)"
 fi
-mkfifo /tmp/mpd.fifo
-chmod 644 /tmp/mpd.fifo
 
 # CRITICAL: Remove database directory if it exists (MPD expects it to be a file)
 if [ -d ~/.local/share/mpd/database ]; then
