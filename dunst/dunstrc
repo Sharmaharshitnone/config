@@ -143,4 +143,5 @@
 # Requires: /etc/sudoers.d/kb-rgb for NOPASSWD
 
 [kb-glow]
+    summary = "*"
     script = /home/akanksha/config/dunst/scripts/kb-rgb-glow

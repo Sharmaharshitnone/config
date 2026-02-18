@@ -668,11 +668,7 @@ show_status() {
 # ── SUDO ESCALATION ──────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════
 [[ -w "$ACPI_CALL" ]] || {
-    if (( EUID != 0 )); then
-        # Resolve full path to script for sudo execution
-        SCRIPT_PATH="$(readlink -f "$0")"
-        exec sudo "$SCRIPT_PATH" "$@"
-    fi
+    (( EUID != 0 )) && exec sudo "$0" "$@"
 }
 
 # ── Initialize state directory ───────────────────────────────
