@@ -8,7 +8,7 @@ if [ -f "$STATEFILE" ] && [ "$(cat "$STATEFILE")" = "on" ]; then
     redshift -x
     echo "off" > "$STATEFILE"
 else
-    redshift -O 3500K # Standard "warm" coding temp
+    redshift -O 3800K # Standard "warm" coding temp
     echo "on" > "$STATEFILE"
 fi
 

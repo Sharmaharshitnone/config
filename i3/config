@@ -190,7 +190,7 @@ bar {
         status_command i3status-rs ~/.config/i3status-rust/config.toml 
         font pango:JetBrainsMono Nerd Font 11
         strip_workspace_numbers no
-        position bottom
+        position top
 	mode hide
 	padding 0
         hidden_state hide
