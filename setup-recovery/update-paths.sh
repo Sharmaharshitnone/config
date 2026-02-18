@@ -91,6 +91,22 @@ for item in "$BIN_SOURCE"/*; do
     info "  → $item_name"
 done
 
+# ── 5. Rebuild i3-helper (Rust binary) ───────────────────────────────────────
+I3_HELPER_DIR="$CONFIG_DIR/i3/scripts/i3-helper"
+if [[ -f "$I3_HELPER_DIR/Cargo.toml" ]]; then
+    if command -v cargo &>/dev/null; then
+        info "Rebuilding i3-helper..."
+        if (cd "$I3_HELPER_DIR" && cargo build --release 2>&1 >/dev/null); then
+            BINARY="$I3_HELPER_DIR/target/release/i3-helper"
+            [[ -x "$BINARY" ]] && info "  ✓ i3-helper built successfully"
+        else
+            warn "  ✗ i3-helper build failed (check Rust)"
+        fi
+    else
+        warn "  ✗ cargo not found — install Rust first (rustup)"
+    fi
+fi
+
 info ""
 info "Done. Next steps:"
 info "  1. Reload i3:   \$mod+Shift+r"

@@ -55,6 +55,8 @@ CONFIG_DIRS=(
     "Thunar"
     "atuin"
     "newsboat"
+    "fontconfig"
+    "vit"
 )
 
 log_info "Creating symlinks for config directories..."
@@ -479,6 +481,61 @@ if [[ -f "$I3_HELPER_DIR/Cargo.toml" ]]; then
     fi
 else
     log_warn "  i3-helper source not found (skipping build)"
+fi
+
+# === SYSTEM CONFIG: vconsole.conf ===
+VCONSOLE_SRC="$PARENT_CONFIG_DIR/vconsole.conf"
+if [[ -f "$VCONSOLE_SRC" ]]; then
+    if diff -q "$VCONSOLE_SRC" /etc/vconsole.conf &>/dev/null 2>&1; then
+        log_info "✓ /etc/vconsole.conf already up-to-date"
+    else
+        [[ -f /etc/vconsole.conf ]] && sudo cp /etc/vconsole.conf "/etc/vconsole.conf.backup_$(date +%Y%m%d_%H%M%S)"
+        sudo cp "$VCONSOLE_SRC" /etc/vconsole.conf
+        log_info "→ /etc/vconsole.conf (copied from repo)"
+    fi
+else
+    log_warn "  vconsole.conf not found in repo (skipping)"
+fi
+
+# === SYSTEM CONFIG: ly display manager ===
+LY_SRC="$PARENT_CONFIG_DIR/ly-configs/etc"
+if [[ -d "$LY_SRC" ]]; then
+    log_info "Restoring ly display manager configs..."
+    # doas.conf
+    if [[ -f "$LY_SRC/doas.conf" ]]; then
+        if diff -q "$LY_SRC/doas.conf" /etc/doas.conf &>/dev/null 2>&1; then
+            log_info "  ✓ /etc/doas.conf already up-to-date"
+        else
+            [[ -f /etc/doas.conf ]] && sudo cp /etc/doas.conf "/etc/doas.conf.backup_$(date +%Y%m%d_%H%M%S)"
+            sudo cp "$LY_SRC/doas.conf" /etc/doas.conf
+            sudo chmod 0400 /etc/doas.conf
+            log_info "  → /etc/doas.conf"
+        fi
+    fi
+    # PAM files
+    for pam_file in "$LY_SRC/pam.d/ly" "$LY_SRC/pam.d/ly-autologin"; do
+        [[ -f "$pam_file" ]] || continue
+        pam_name=$(basename "$pam_file")
+        if diff -q "$pam_file" "/etc/pam.d/$pam_name" &>/dev/null 2>&1; then
+            log_info "  ✓ /etc/pam.d/$pam_name already up-to-date"
+        else
+            sudo cp "$pam_file" "/etc/pam.d/$pam_name"
+            log_info "  → /etc/pam.d/$pam_name"
+        fi
+    done
+    # systemd override
+    if [[ -f "$LY_SRC/systemd/system/ly@tty2.service" ]]; then
+        sudo mkdir -p /etc/systemd/system
+        if diff -q "$LY_SRC/systemd/system/ly@tty2.service" /etc/systemd/system/ly@tty2.service &>/dev/null 2>&1; then
+            log_info "  ✓ ly@tty2.service already up-to-date"
+        else
+            sudo cp "$LY_SRC/systemd/system/ly@tty2.service" /etc/systemd/system/ly@tty2.service
+            log_info "  → /etc/systemd/system/ly@tty2.service"
+        fi
+    fi
+    log_info "✓ ly configs restored"
+else
+    log_warn "  ly-configs not found (skipping)"
 fi
 
 # === SUDO RULES FOR kb-rgb AND warp ===
