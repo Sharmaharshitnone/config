@@ -10,4 +10,4 @@ TOGGLE="${XDG_STATE_HOME:-$HOME/.local/state}/kb-rgb/glow_enabled"
 
 # Prefer env var (modern dunst), fall back to positional arg
 URGENCY="${DUNST_URGENCY:-${5:-normal}}"
-exec sudo /home/kali/work/config/bin/kb-rgb glow-flash "$URGENCY"
+exec sudo /home/akanksha/config/bin/kb-rgb glow-flash "$URGENCY"

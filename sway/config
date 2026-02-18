@@ -1,5 +1,5 @@
 # Default config for sway
 # Read `man 5 sway` for a complete reference.
 # Include modular configurations
-include /home/kali/work/config/sway/config.d/*
+include /home/akanksha/config/sway/config.d/*
 # exec_always touch /tmp/sway_test_1766377538
