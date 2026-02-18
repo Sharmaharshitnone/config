@@ -54,6 +54,7 @@ CONFIG_DIRS=(
     "speech-dispatcher"
     "Thunar"
     "atuin"
+    "newsboat"
 )
 
 log_info "Creating symlinks for config directories..."
@@ -478,6 +479,54 @@ if [[ -f "$I3_HELPER_DIR/Cargo.toml" ]]; then
     fi
 else
     log_warn "  i3-helper source not found (skipping build)"
+fi
+
+# === SUDO RULES FOR kb-rgb AND warp ===
+# These scripts require NOPASSWD sudo. The sudoers entry must use the *canonical*
+# (realpath-resolved) path of the script, not a symlink. We generate the rules
+# here so they always match the actual clone location on this machine.
+setup_sudoers() {
+    local script="$1" sudoers_file="$2"
+    local real_path
+    real_path=$(realpath "$script" 2>/dev/null) || {
+        log_warn "  ✗ cannot resolve $script — skipping sudoers for $(basename "$script")"
+        return
+    }
+    local rule="$USER ALL=(ALL) NOPASSWD: $real_path"
+    local current=""
+    [[ -f "$sudoers_file" ]] && current=$(cat "$sudoers_file")
+    if [[ "$current" == "$rule" ]]; then
+        log_info "  ✓ sudoers $(basename "$sudoers_file") already correct"
+        return
+    fi
+    printf '%s\n' "$rule" | sudo tee "$sudoers_file" > /dev/null
+    sudo chmod 0440 "$sudoers_file"
+    log_info "  → $sudoers_file : NOPASSWD $real_path"
+}
+
+log_info "Setting up NOPASSWD sudoers rules..."
+setup_sudoers "$PARENT_CONFIG_DIR/bin/kb-rgb" /etc/sudoers.d/kb-rgb
+setup_sudoers "$PARENT_CONFIG_DIR/bin/warp"   /etc/sudoers.d/warp
+
+# === GENERATE MACHINE-LOCAL CONFIG: dunst glow hook & i3 kb path ===
+# These two files contain absolute paths to kb-rgb that differ between machines.
+# We patch them here using the real canonical path so they always work.
+KB_REAL=$(realpath "$PARENT_CONFIG_DIR/bin/kb-rgb" 2>/dev/null || echo "")
+if [[ -n "$KB_REAL" ]]; then
+    # dunst/scripts/kb-rgb-glow  —  fix hardcoded path in exec line
+    GLOW_HOOK="$PARENT_CONFIG_DIR/dunst/scripts/kb-rgb-glow"
+    if [[ -f "$GLOW_HOOK" ]]; then
+        # Replace any absolute path preceding "kb-rgb glow-flash" with the real one
+        sed -i "s|exec sudo [^ ]*/kb-rgb glow-flash|exec sudo $KB_REAL glow-flash|g" "$GLOW_HOOK"
+        log_info "  → dunst/scripts/kb-rgb-glow patched → $KB_REAL"
+    fi
+
+    # i3/config.d/keyboard-rgb.conf  —  fix set \$kb line
+    KB_I3CONF="$PARENT_CONFIG_DIR/i3/config.d/keyboard-rgb.conf"
+    if [[ -f "$KB_I3CONF" ]]; then
+        sed -i "s|set \\\$kb .*|set \$kb $KB_REAL|" "$KB_I3CONF"
+        log_info "  → i3/config.d/keyboard-rgb.conf \$kb patched → $KB_REAL"
+    fi
 fi
 
 log_info "✓ Dotfile restoration complete!"

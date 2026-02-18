@@ -28,7 +28,7 @@ sudo pacman -S --needed --noconfirm imagemagick intel-media-driver intel-ucode i
 sudo pacman -S --needed --noconfirm lazydocker lazygit lib32-gamemode lib32-nvidia-utils lib32-vulkan-icd-loader
 sudo pacman -S --needed --noconfirm libva-nvidia-driver linux linux-firmware linux-headers lldb luarocks ly lynx
 sudo pacman -S --needed --noconfirm maim mako man-db mat2 materia-gtk-theme mediainfo mold mpc mpd mpd-mpris mpv
-sudo pacman -S --needed --noconfirm neovim network-manager-applet networkmanager noto-fonts
+sudo pacman -S --needed --noconfirm neovim network-manager-applet networkmanager newsboat noto-fonts
 sudo pacman -S --needed --noconfirm noto-fonts-cjk noto-fonts-emoji noto-fonts-extra nsxiv nvidia-open-dkms nvidia-prime nvtop
 sudo pacman -S --needed --noconfirm obs-studio opendoas openrgb pacman-contrib pandoc-cli papirus-icon-theme
 sudo pacman -S --needed --noconfirm parallel pass pavucontrol picard picom clipmenu pipewire pipewire-alsa

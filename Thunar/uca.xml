@@ -49,7 +49,7 @@
 	<name>rmpc</name>
 	<submenu></submenu>
 	<unique-id>1770185152256880-1</unique-id>
-	<command>thunar-mpd-play %f</command>
+	<command>/home/kali/.local/bin/thunar-mpd-play %f</command>
 	<description></description>
 	<range>*</range>
 	<patterns>*</patterns>

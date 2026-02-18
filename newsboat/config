@@ -1,0 +1,157 @@
+# -----------------------------------------------------------------------------
+#  Newsboat Configuration — Production Grade
+#  Maintainer: kali
+#  Version:    2.42 (Arch: pacman -S newsboat)
+#  XDG Path:   ~/.config/newsboat/config
+#  Docs:       https://newsboat.org/releases/2.42/docs/newsboat.html
+# -----------------------------------------------------------------------------
+
+# ── General Behavior ─────────────────────────────────────────────────────────
+
+auto-reload           yes
+reload-time           30          # minutes between auto-reloads
+reload-threads        8           # parallel downloads — i7-13620H has 10 cores
+max-items             200         # articles kept per feed
+keep-articles-days    90          # auto-prune after 3 months
+text-width            80          # article render width (or terminal width if smaller)
+confirm-exit          yes         # prevent accidental quit
+cleanup-on-quit       yes         # remove stale feed data on exit
+delete-read-articles-on-quit no   # preserve read history
+show-read-feeds       no          # hide fully-read feeds from list
+show-read-articles    yes         # show read articles inside a feed
+prepopulate-query-feeds yes       # populate query feeds at startup
+goto-first-unread     yes         # auto-jump to first unread on feed entry
+goto-next-feed        yes         # j/k wraps into next feed when all read
+download-retries      3           # retry failed downloads
+download-timeout      15          # seconds before giving up
+scrolloff             5           # keep 5 lines visible above/below cursor
+refresh-on-startup    yes         # reload all feeds when newsboat starts
+suppress-first-reload yes         # ...but don't double-reload with auto-reload
+article-sort-order    date-desc   # newest articles first
+feed-sort-order       unreadarticlecount-desc  # busiest feeds at top
+history-limit         100         # search/cmdline history entries
+
+# ── Browser ──────────────────────────────────────────────────────────────────
+
+browser "firefox %u"
+
+# ── Notifications (dunst) ────────────────────────────────────────────────────
+
+notify-program  "~/.config/newsboat/scripts/notify"
+notify-format   "%d new articles (%n unread articles, %f unread feeds)"
+notify-always   no    # only notify when there are actually new articles
+
+# ── Bookmarking ──────────────────────────────────────────────────────────────
+
+bookmark-cmd        "~/.config/newsboat/scripts/bookmark"
+bookmark-autopilot  yes   # skip interactive prompts, auto-fill URL/title
+
+# ── Podcast Support (podboat) ────────────────────────────────────────────────
+
+podcast-auto-enqueue  no              # manual enqueue with 'E' key
+player                "mpv --vid=no --"
+download-path         "~/Podcasts/%n/"
+
+# ── Format Strings ───────────────────────────────────────────────────────────
+# %i=index  %n=unread flag  %u=unread/total  %t=title  %f=flags  %D=date
+# %T=feed title (in article list)  %L=article length
+
+feedlist-format     "%4i %n %11u %t"
+articlelist-format  "%4i %f %D   %?T?|%-17T|  ?%t"
+datetime-format     "%b %d %R"
+notify-format       "%d new articles (%n unread articles, %f unread feeds)"
+
+feedlist-title-format     "%N %V — Your Feeds (%u unread, %t total)%?T? — tag '%T'&?"
+articlelist-title-format  "%N %V — %T (%u unread, %t total)"
+itemview-title-format     "%N %V — %T"
+
+# ── Vim-Style Keybindings (bind syntax, v2.39+) ─────────────────────────────
+# Navigation: j/k=down/up  l=open  h=quit(back)  gg=top  G=bottom
+# These use the new multi-key `bind` command for sequences like gg
+
+bind j  feedlist,articlelist,searchresultslist,urlview  down
+bind k  feedlist,articlelist,searchresultslist,urlview  up
+bind l  feedlist,articlelist,searchresultslist           open
+bind h  feedlist,articlelist,searchresultslist,article   quit
+
+bind j  article  down
+bind k  article  up
+
+bind gg feedlist,articlelist,searchresultslist  home
+bind G  feedlist,articlelist,searchresultslist  end
+
+bind J  articlelist  next-feed            -- "Jump to next feed"
+bind K  articlelist  prev-feed            -- "Jump to previous feed"
+
+bind g  article  home                     -- "Go to top of article"
+
+bind n  feedlist,articlelist  next-unread  -- "Next unread article"
+bind p  feedlist,articlelist  prev-unread  -- "Previous unread article"
+
+bind D  articlelist  delete-article        -- "Delete article"
+bind U  feedlist     toggle-show-read-feeds -- "Toggle read feeds visibility"
+
+# ── Macros ───────────────────────────────────────────────────────────────────
+# Invoke with comma (,) prefix then the key
+
+# ,v — Audio/Background: play in mpv without video (listen while coding)
+# macro v set browser "mpv --vid=no -- %u &" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Play audio in mpv (background)"
+
+# macro v set browser "mpc add '%u' && mpc play" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Queue to MPD & Play"
+
+macro v set browser "mpd-play-url '%u' &" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Extract & Play in MPD"
+
+# ,V — Video: play in mpv with full video (focus watching)
+macro V set browser "mpv -- %u &" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Play video in mpv"
+
+# ,y — Copy URL to clipboard via xclip
+macro y set browser "echo -n %u | xclip -selection clipboard" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Copy URL to clipboard"
+
+# ,o — Open in w3m terminal browser (read without leaving terminal)
+macro o set browser "kitty -e w3m %u &" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Open in w3m"
+
+# ,d — Download with yt-dlp (videos/podcasts)
+macro d set browser "yt-dlp --no-playlist -o '~/Downloads/%%(title)s.%%(ext)s' %u &" ; open-in-browser-noninteractively ; set browser "firefox %u" -- "Download with yt-dlp"
+
+# ── Color Scheme — Monochrome Dark ──────────────────────────────────────────
+# Palette: inherits from kitty Gruvbox Material Dark Hard terminal colors
+# color0=#665c54  color7=#d4be98  color8=#928374  white=#ffffff  black=#000000
+# Design: monochrome UI chrome, zero accent hues — matches i3/rmpc/dunst
+
+color background          default  default
+color listnormal          color7   default
+color listnormal_unread   white    default        bold
+color listfocus           black    color7         bold
+color listfocus_unread    black    white          bold
+color title               color7   color0         bold
+color info                color7   color0
+color hint-key            white    color0         bold
+color hint-keys-delimiter color8   color0
+color hint-separator      color8   color0
+color hint-description    color7   color0
+color article             color7   default
+color end-of-text-marker  color8   default
+
+# ── Highlights ───────────────────────────────────────────────────────────────
+
+# Article metadata headers
+highlight article "^(Feed|Title|Author|Link|Date|Links):.*" color6 default bold
+
+# URLs in articles — muted blue
+highlight article "https?://[^ ]+" color4 default underline
+
+# Feed list section dividers (---Section--- pattern)
+highlight feedlist "---.*---" color3 default bold
+highlight feedlist ".*0/0.." default default invis
+
+# Article list: highlight unread count
+highlight feedlist "[1-9][0-9]*/" white default bold
+
+# ── Predefined Filters ──────────────────────────────────────────────────────
+
+define-filter "Unread articles"     "unread = \"yes\""
+define-filter "Last 24 hours"       "age between 0:1"
+define-filter "Last 7 days"         "age between 0:7"
+define-filter "Security feeds"      "tags # \"security\""
+define-filter "Programming feeds"   "tags # \"programming\""
+define-filter "Linux feeds"         "tags # \"linux\""

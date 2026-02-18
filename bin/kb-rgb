@@ -1,270 +1,769 @@
-#!/bin/sh
-# kb-rgb — COLORFUL P15 23 keyboard RGB controller
-# Uses acpi_call to send Clevo WMI commands (WMBB method 0x67)
-# Byte order: 0xFz_BB_RR_GG (zone, blue, red, green)
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════════
+# kb-rgb — COLORFUL P15 23 keyboard RGB controller (single-zone)
 #
-# Dependencies: acpi_call-dkms (kernel module)
-# Usage:
-#   kb-rgb color RRGGBB        — set all zones to hex color
-#   kb-rgb color RR GG BB      — set all zones to decimal R G B
-#   kb-rgb zone 0|1|2 RRGGBB   — set single zone (0=left, 1=center, 2=right)
-#   kb-rgb brightness 0-100    — set brightness (0=off, 100=max)
-#   kb-rgb off                 — turn off keyboard backlight
-#   kb-rgb on                  — restore last color (or white) at full brightness
-#   kb-rgb cycle               — cycle through preset colors
-#   kb-rgb preset NAME         — apply a named preset
-#   kb-rgb status              — show current state
+# Hardware:  Tongfang/Clevo WMI — ACPI path \_SB_.WMI_.WMBB
+# Protocol:  Method 0x67, byte order BRG → 0xF0_BB_RR_GG
+#            Brightness: 0xF4_00_00_XX (XX = 0–200, maps 0–100%)
+#
+# Deps:     acpi_call-dkms
+# Optional: rofi | dmenu (picker), dunst (notification glow)
+#
+# State:    $XDG_STATE_HOME/kb-rgb/  (color, brightness, effects)
+# Sudoers:  /etc/sudoers.d/kb-rgb   (NOPASSWD for dunst hooks)
+# ══════════════════════════════════════════════════════════════
+set -euo pipefail
 
-ACPI_CALL="/proc/acpi/call"
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/kb-rgb"
-STATE_FILE="$STATE_DIR/state"
+# ── Paths & constants ────────────────────────────────────────
+readonly ACPI_CALL="/proc/acpi/call"
+# Resolve invoking user's home even under sudo (so state is always in ~kali/)
+readonly REAL_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)
+readonly STATE_DIR="${REAL_HOME}/.local/state/kb-rgb"
+readonly STATE_FILE="$STATE_DIR/state"
+readonly EFFECT_PID="$STATE_DIR/effect.pid"
+readonly EFFECT_NAME="$STATE_DIR/effect.name"
+readonly GLOW_TOGGLE="$STATE_DIR/glow_enabled"
+readonly CYCLE_FILE="$STATE_DIR/cycle_index"
+readonly LOCK_FILE="$STATE_DIR/lock"
+readonly DMENU_THEME="$REAL_HOME/.config/i3/scripts/dmenu-theme.sh"
 
-# ── Helpers ──────────────────────────────────────────────────
-die() { printf 'kb-rgb: %s\n' "$1" >&2; exit 1; }
+# EC needs ~30ms to process each WMI write. Below this → glitches.
+readonly EC_SETTLE=0.035
 
-wmi_cmd() {
+# ── Gruvbox Material palette (single source of truth) ────────
+declare -rA GRV=(
+    [red]="ea6962"   [green]="a9b665"  [yellow]="e78a4e"
+    [blue]="7daea3"  [purple]="d3869b" [aqua]="89b482"
+    [orange]="d8a657" [fg]="d4be98"    [gray]="928374"
+)
+
+declare -rA PURE=(
+    [red]="FF0000"    [green]="00FF00"   [blue]="0000FF"
+    [white]="FFFFFF"  [cyan]="00FFFF"    [magenta]="FF00FF"
+    [yellow]="FFFF00" [orange]="FF6600"  [purple]="8800FF"
+    [pink]="FF1493"
+)
+
+declare -rA AMBIENT=(
+    [warm]="FFB366"  [ice]="66CCFF"    [sunset]="FF4500"
+    [forest]="228B22" [lava]="FF2200"  [ocean]="006994"
+    [night]="191970" [ember]="CC5500"  [mint]="3EB489"
+    [rose]="FF007F"  [steam]="1B2838"  [hacker]="00FF41"
+)
+
+# Ordered cycle list (Gruvbox first, then a few pures)
+readonly CYCLE_COLORS=(
+    "${GRV[red]}" "${GRV[green]}" "${GRV[yellow]}" "${GRV[blue]}"
+    "${GRV[purple]}" "${GRV[aqua]}" "${GRV[orange]}" "${GRV[fg]}"
+    "${PURE[red]}" "${PURE[green]}" "${PURE[blue]}" "${PURE[cyan]}"
+    "${PURE[magenta]}" "${PURE[yellow]}" "${PURE[white]}"
+)
+
+# ── Logging ──────────────────────────────────────────────────
+die()  { printf 'kb-rgb: %s\n' "$*" >&2; exit 1; }
+info() { printf '%s\n' "$*"; }
+
+# ── State directory bootstrap ────────────────────────────────
+init_state() { [[ -d "$STATE_DIR" ]] || mkdir -p "$STATE_DIR"; }
+
+# ── Filelock (prevents concurrent WMI writes) ────────────────
+acquire_lock() {
+    local fd
+    exec {fd}>"$LOCK_FILE"
+    flock -w 2 "$fd" 2>/dev/null || return 1  # skip if another write in progress
+}
+
+# ══════════════════════════════════════════════════════════════
+# ── WMI / HARDWARE LAYER ─────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+
+wmi_write() {
     printf '\_SB_.WMI_.WMBB 0 0x67 %s' "$1" > "$ACPI_CALL" 2>/dev/null ||
-        die "Failed to write to $ACPI_CALL. Run with sudo or add udev rule."
+        die "acpi_call write failed — is acpi_call module loaded?"
 }
 
-# Convert standard RGB hex to Clevo BRG format
-# Input: RRGGBB (hex string without #)
-# Output: 0xBBRRGG
-rgb_to_brg() {
-    hex=$(printf '%s' "$1" | tr -d '#' | tr 'a-f' 'A-F')
-    [ ${#hex} -eq 6 ] || die "Invalid hex color: $1 (need 6 hex digits)"
-    r=$(printf '%d' "0x${hex%????}")
-    _tmp=${hex#??}
-    g=$(printf '%d' "0x${_tmp%??}")
-    b=$(printf '%d' "0x${_tmp#??}")
-    printf '0x%02X%02X%02X' "$b" "$r" "$g"
+# Input: RRGGBB (hex)  →  WMI color command
+hw_set_color() {
+    local hex="${1^^}"
+    [[ ${#hex} -eq 6 && "$hex" =~ ^[0-9A-F]{6}$ ]] ||
+        die "Invalid color: $1 (need RRGGBB hex)"
+    local r="${hex:0:2}" g="${hex:2:2}" b="${hex:4:2}"
+    wmi_write "$(printf '0xF0%s%s%s' "$b" "$r" "$g")"
 }
 
-# Save state to file
+# Input: 0–100 integer  →  WMI brightness command
+hw_set_brightness() {
+    local val=$1
+    (( val >= 0 && val <= 100 )) 2>/dev/null ||
+        die "Brightness must be 0–100, got: $val"
+    wmi_write "$(printf '0xF40000%02X' $(( val * 2 )))"
+}
+
+# ══════════════════════════════════════════════════════════════
+# ── STATE LAYER ───────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+
 save_state() {
-    mkdir -p "$STATE_DIR"
-    printf '%s\n%s\n' "$1" "$2" > "$STATE_FILE"  # color brightness
+    init_state
+    printf '%s\n%s\n' "$1" "$2" > "$STATE_FILE"
 }
 
-# Load state from file — returns "RRGGBB brightness"
+# Returns: "COLOR BRIGHTNESS" (space-separated)
 load_state() {
-    if [ -f "$STATE_FILE" ]; then
-        head -2 "$STATE_FILE" | tr '\n' ' '
+    if [[ -f "$STATE_FILE" ]]; then
+        local c b
+        { read -r c; read -r b; } < "$STATE_FILE"
+        printf '%s %s' "${c:-FFFFFF}" "${b:-100}"
     else
         printf 'FFFFFF 100'
     fi
 }
 
-# Set a single zone color. Zone: 0=left, 1=center, 2=right
-set_zone() {
-    zone="$1"
-    brg="$2"
-    zone_prefix=$(printf '0xF%d' "$zone")
-    cmd=$(printf '%s%s' "$zone_prefix" "${brg#0x}")
-    wmi_cmd "$cmd"
+get_color()  { load_state | cut -d' ' -f1; }
+get_bright() { load_state | cut -d' ' -f2; }
+
+# ── High-level: set color + brightness + persist ─────────────
+apply() {
+    local color="${1:?}" bright="${2:-100}"
+    hw_set_color "$color"
+    hw_set_brightness "$bright"
+    save_state "$color" "$bright"
 }
 
-# Set all 3 zones to the same color (hex RRGGBB)
-set_all_zones() {
-    brg=$(rgb_to_brg "$1")
-    set_zone 0 "$brg"
-    set_zone 1 "$brg"
-    set_zone 2 "$brg"
-}
+# ══════════════════════════════════════════════════════════════
+# ── PRESET SYSTEM ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
 
-# Set brightness 0-100 (mapped to EC 0-200 range)
-set_brightness() {
-    val="$1"
-    [ "$val" -ge 0 ] && [ "$val" -le 100 ] 2>/dev/null || die "Brightness must be 0-100"
-    # EC brightness range is 0-200, map linearly
-    ec_val=$(( val * 2 ))
-    cmd=$(printf '0xF40000%02X' "$ec_val")
-    wmi_cmd "$cmd"
-}
-
-# ── Presets ──────────────────────────────────────────────────
-apply_preset() {
-    case "$1" in
-        red)     set_all_zones "FF0000" ;;
-        green)   set_all_zones "00FF00" ;;
-        blue)    set_all_zones "0000FF" ;;
-        white)   set_all_zones "FFFFFF" ;;
-        cyan)    set_all_zones "00FFFF" ;;
-        magenta) set_all_zones "FF00FF" ;;
-        yellow)  set_all_zones "FFFF00" ;;
-        orange)  set_all_zones "FF6600" ;;
-        purple)  set_all_zones "8800FF" ;;
-        pink)    set_all_zones "FF1493" ;;
-        warm)    set_all_zones "FFB366" ;;
-        ice)     set_all_zones "66CCFF" ;;
-        # Multi-zone presets
-        rainbow)
-            brg_r=$(rgb_to_brg "FF0000"); set_zone 0 "$brg_r"
-            brg_g=$(rgb_to_brg "00FF00"); set_zone 1 "$brg_g"
-            brg_b=$(rgb_to_brg "0000FF"); set_zone 2 "$brg_b"
-            ;;
-        flag)
-            brg_l=$(rgb_to_brg "FF6600"); set_zone 0 "$brg_l"
-            brg_m=$(rgb_to_brg "FFFFFF"); set_zone 1 "$brg_m"
-            brg_r=$(rgb_to_brg "00CC00"); set_zone 2 "$brg_r"
-            ;;
-        *)
-            die "Unknown preset: $1. Available: red green blue white cyan magenta yellow orange purple pink warm ice rainbow flag"
+resolve_preset() {
+    local name="$1"
+    case "$name" in
+        gruvbox-*|grv-*) local key="${name#*-}"; printf '%s' "${GRV[$key]:-}" ;;
+        gred) printf '%s' "${GRV[red]}" ;;   ggrn) printf '%s' "${GRV[green]}" ;;
+        gyel) printf '%s' "${GRV[yellow]}" ;; gblu) printf '%s' "${GRV[blue]}" ;;
+        gpur) printf '%s' "${GRV[purple]}" ;; gaqua) printf '%s' "${GRV[aqua]}" ;;
+        gorg) printf '%s' "${GRV[orange]}" ;; gfg)  printf '%s' "${GRV[fg]}" ;;
+        ggray) printf '%s' "${GRV[gray]}" ;;
+        *) # Check pure, then ambient
+            printf '%s' "${PURE[$name]:-${AMBIENT[$name]:-}}"
             ;;
     esac
-    set_brightness 100
-    save_state "$1" 100
 }
 
-# ── Cycle colors ─────────────────────────────────────────────
-CYCLE_FILE="$STATE_DIR/cycle_index"
-CYCLE_COLORS="FF0000 00FF00 0000FF FFFFFF 00FFFF FF00FF FFFF00 FF6600 8800FF"
+apply_preset() {
+    local hex
+    hex=$(resolve_preset "$1")
+    [[ -n "$hex" ]] || die "Unknown preset: $1 — run 'kb-rgb presets'"
+    apply "$hex"
+}
+
+list_presets() {
+    cat <<'EOF'
+── Gruvbox Material ──
+  gruvbox-red    #ea6962    gruvbox-green  #a9b665
+  gruvbox-yellow #e78a4e    gruvbox-blue   #7daea3
+  gruvbox-purple #d3869b    gruvbox-aqua   #89b482
+  gruvbox-orange #d8a657    gruvbox-fg     #d4be98
+  gruvbox-gray   #928374
+
+── Pure Colors ──
+  red #FF0000  green #00FF00  blue #0000FF  white #FFFFFF
+  cyan #00FFFF  magenta #FF00FF  yellow #FFFF00  orange #FF6600
+  purple #8800FF  pink #FF1493
+
+── Ambient ──
+  warm #FFB366  ice #66CCFF  sunset #FF4500  forest #228B22
+  lava #FF2200  ocean #006994  night #191970  ember #CC5500
+  mint #3EB489  rose #FF007F  steam #1B2838  hacker #00FF41
+EOF
+}
+
+# ══════════════════════════════════════════════════════════════
+# ── CYCLE ─────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
 
 do_cycle() {
-    idx=0
-    [ -f "$CYCLE_FILE" ] && idx=$(cat "$CYCLE_FILE")
-    set -- $CYCLE_COLORS
-    total=$#
+    init_state
+    local idx=0
+    [[ -f "$CYCLE_FILE" ]] && idx=$(< "$CYCLE_FILE")
+    local total=${#CYCLE_COLORS[@]}
     idx=$(( (idx + 1) % total ))
-    shift $idx
-    color="$1"
-    set_all_zones "$color"
-    set_brightness 100
+    local color="${CYCLE_COLORS[$idx]}"
+    apply "$color"
     printf '%d' "$idx" > "$CYCLE_FILE"
-    save_state "$color" 100
-    printf 'Color: #%s\n' "$color"
+    info "#$color"
 }
 
-# ── dmenu/rofi picker ───────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# ── INTERACTIVE PICKER (rofi / dmenu) ─────────────────────────
+# ══════════════════════════════════════════════════════════════
+
 do_pick() {
-    presets="red\ngreen\nblue\nwhite\ncyan\nmagenta\nyellow\norange\npurple\npink\nwarm\nice\nrainbow\nflag\ncustom"
-    if command -v rofi >/dev/null 2>&1; then
-        choice=$(printf '%b' "$presets" | rofi -dmenu -p "KB Color")
-    elif command -v dmenu >/dev/null 2>&1; then
-        choice=$(printf '%b' "$presets" | dmenu -p "KB Color:")
+    local entries
+    entries="\
+gruvbox-red     #ea6962
+gruvbox-green   #a9b665
+gruvbox-yellow  #e78a4e
+gruvbox-blue    #7daea3
+gruvbox-purple  #d3869b
+gruvbox-aqua    #89b482
+gruvbox-orange  #d8a657
+gruvbox-fg      #d4be98
+───────────────────────
+red             #FF0000
+green           #00FF00
+blue            #0000FF
+white           #FFFFFF
+cyan            #00FFFF
+magenta         #FF00FF
+yellow          #FFFF00
+orange          #FF6600
+purple          #8800FF
+pink            #FF1493
+───────────────────────
+warm            #FFB366
+ice             #66CCFF
+sunset          #FF4500
+forest          #228B22
+lava            #FF2200
+ocean           #006994
+night           #191970
+hacker          #00FF41
+mint            #3EB489
+rose            #FF007F
+───────────────────────
+⌨ custom hex
+⏻ off"
+
+    local choice
+    if command -v rofi &>/dev/null; then
+        choice=$(printf '%s\n' "$entries" | rofi -dmenu -i -p " KB-RGB" \
+            -theme-str 'window {width: 340px; background-color: #000000ee;} \
+                         mainbox {background-color: transparent;} \
+                         listview {lines: 22; background-color: transparent;} \
+                         element {padding: 4px 8px;} \
+                         element normal.normal {background-color: transparent; text-color: #ffffff;} \
+                         element selected.normal {background-color: #f5f5f5; text-color: #1e1e2e;} \
+                         inputbar {background-color: #1a1a1a; text-color: #ffffff; padding: 8px;} \
+                         prompt {text-color: #d8a657;}')
+    elif [[ -f "$DMENU_THEME" ]]; then
+        # shellcheck source=/dev/null
+        source "$DMENU_THEME"
+        choice=$(printf '%s\n' "$entries" | dmenu_themed -p "KB Color:")
+    elif command -v dmenu &>/dev/null; then
+        choice=$(printf '%s\n' "$entries" | dmenu -i -p "KB Color:")
     else
-        die "No rofi or dmenu found"
+        die "Need rofi or dmenu for picker"
     fi
-    [ -z "$choice" ] && exit 0
-    if [ "$choice" = "custom" ]; then
-        if command -v zenity >/dev/null 2>&1; then
-            hex=$(zenity --color-selection --title="Keyboard Color" 2>/dev/null)
-            [ -z "$hex" ] && exit 0
-            # zenity returns rgb(r,g,b) or #rrggbb
-            case "$hex" in
-                rgb*)
-                    hex=$(printf '%s' "$hex" | sed 's/rgb(\([0-9]*\),\([0-9]*\),\([0-9]*\))/\1 \2 \3/')
-                    r=$(printf '%s' "$hex" | cut -d' ' -f1)
-                    g=$(printf '%s' "$hex" | cut -d' ' -f2)
-                    b=$(printf '%s' "$hex" | cut -d' ' -f3)
-                    hex=$(printf '%02X%02X%02X' "$r" "$g" "$b")
-                    ;;
-                \#*) hex="${hex#\#}" ;;
-            esac
-            set_all_zones "$hex"
-            set_brightness 100
-            save_state "$hex" 100
+
+    [[ -z "$choice" ]] && exit 0
+    local name
+    name=$(awk '{print $1}' <<< "$choice")
+
+    case "$name" in
+        *custom*)
+            local hex
+            if command -v rofi &>/dev/null; then
+                hex=$(rofi -dmenu -p " RRGGBB:" \
+                    -theme-str 'window {width: 280px; background-color: #000000ee;} \
+                                 inputbar {background-color: #1a1a1a; text-color: #ffffff; padding: 8px;} \
+                                 prompt {text-color: #d8a657;}' < /dev/null)
+            elif [[ -f "$DMENU_THEME" ]]; then
+                source "$DMENU_THEME"
+                hex=$(printf '' | dmenu_themed -p "Hex RRGGBB:")
+            else
+                hex=$(printf '' | dmenu -p "Hex:")
+            fi
+            [[ -z "$hex" ]] && exit 0
+            apply "${hex//#/}"
+            ;;
+        *off*) fx_stop 2>/dev/null; hw_set_brightness 0 ;;
+        ───*|"") exit 0 ;;
+        *) apply_preset "$name" ;;
+    esac
+}
+
+# ══════════════════════════════════════════════════════════════
+# ── EFFECT ENGINE ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# One effect at a time. Each effect is a background subshell.
+# Starting a new effect kills the previous one.
+
+fx_stop() {
+    if [[ -f "$EFFECT_PID" ]]; then
+        local pid
+        pid=$(< "$EFFECT_PID")
+        if kill -0 "$pid" 2>/dev/null; then
+            pkill -P "$pid" 2>/dev/null || true   # children first
+            kill "$pid" 2>/dev/null || true
+            # Don't wait — PID was spawned by a different invocation
+            sleep "$EC_SETTLE"
+        fi
+        rm -f "$EFFECT_PID" "$EFFECT_NAME"
+    fi
+}
+
+fx_register() {
+    local name="$1" pid="$2"
+    printf '%d' "$pid" > "$EFFECT_PID"
+    printf '%s' "$name" > "$EFFECT_NAME"
+}
+
+fx_running() {
+    [[ -f "$EFFECT_PID" ]] && kill -0 "$(< "$EFFECT_PID")" 2>/dev/null
+}
+
+fx_current() {
+    if fx_running && [[ -f "$EFFECT_NAME" ]]; then
+        cat "$EFFECT_NAME"
+    else
+        printf 'none'
+    fi
+}
+
+# ── Speed → delay conversion ────────────────────────────────
+# speed 1 = slowest … 10 = fastest. Returns fractional seconds.
+speed_to_delay() {
+    local base_ms=$1 speed=${2:-5}
+    (( speed = speed < 1 ? 1 : speed > 10 ? 10 : speed ))
+    awk "BEGIN {
+        d = ($base_ms / 1000.0) * (10.0 / ($speed * 2.0))
+        if (d < $EC_SETTLE) d = $EC_SETTLE
+        printf \"%.3f\", d
+    }"
+}
+
+# ── Color interpolation ─────────────────────────────────────
+# Fade FROM → TO in N steps with given DELAY between each.
+fade_colors() {
+    local from="$1" to="$2" steps="$3" delay="$4"
+    local fr fg fb tr tg tb
+    fr=$((16#${from:0:2})) fg=$((16#${from:2:2})) fb=$((16#${from:4:2}))
+    tr=$((16#${to:0:2}))   tg=$((16#${to:2:2}))   tb=$((16#${to:4:2}))
+
+    local i
+    for (( i = 0; i <= steps; i++ )); do
+        local cr=$(( fr + (tr - fr) * i / steps ))
+        local cg=$(( fg + (tg - fg) * i / steps ))
+        local cb=$(( fb + (tb - fb) * i / steps ))
+        hw_set_color "$(printf '%02X%02X%02X' "$cr" "$cg" "$cb")"
+        sleep "$delay"
+    done
+}
+
+# ── Effect: Breathe ──────────────────────────────────────────
+fx_breathe() {
+    fx_stop; init_state
+    local color="${1:-}" speed="${2:-5}"
+    [[ -z "$color" ]] && color=$(get_color)
+    [[ -z "$color" ]] && color="${GRV[red]}"
+    color="${color//#/}"
+    local delay
+    delay=$(speed_to_delay 40 "$speed")
+
+    hw_set_color "$color"
+    (
+        set +e  # resilient to transient WMI write failures
+        trap 'exit 0' TERM INT
+        while :; do
+            for (( b = 10; b <= 100; b += 5 )); do hw_set_brightness "$b"; sleep "$delay"; done
+            for (( b = 100; b >= 10; b -= 5 )); do hw_set_brightness "$b"; sleep "$delay"; done
+        done
+    ) &
+    fx_register breathe $!
+    save_state "$color" 100
+    info "Breathing #$color speed=$speed (PID $!)"
+}
+
+# ── Effect: Wave (2 colors) ─────────────────────────────────
+fx_wave() {
+    fx_stop; init_state
+    local c1="${1:-${GRV[red]}}" c2="${2:-${GRV[blue]}}" speed="${3:-5}"
+    c1="${c1//#/}"; c2="${c2//#/}"
+    local delay
+    delay=$(speed_to_delay 50 "$speed")
+    hw_set_brightness 100
+
+    (
+        set +e
+        trap 'exit 0' TERM INT
+        while :; do
+            fade_colors "$c1" "$c2" 30 "$delay"
+            fade_colors "$c2" "$c1" 30 "$delay"
+        done
+    ) &
+    fx_register wave $!
+    info "Wave #$c1 ↔ #$c2 speed=$speed (PID $!)"
+}
+
+# ── Effect: Strobe ───────────────────────────────────────────
+fx_strobe() {
+    fx_stop; init_state
+    local color="${1:-FFFFFF}" speed="${2:-5}"
+    color="${color//#/}"
+    local on_d off_d
+    on_d=$(speed_to_delay 50 "$speed")
+    off_d=$(speed_to_delay 40 "$speed")
+    hw_set_color "$color"
+
+    (
+        set +e
+        trap 'exit 0' TERM INT
+        while :; do
+            hw_set_brightness 100; sleep "$on_d"
+            hw_set_brightness 0;   sleep "$off_d"
+        done
+    ) &
+    fx_register strobe $!
+    info "Strobe #$color speed=$speed (PID $!)"
+}
+
+# ── Effect: Candle ───────────────────────────────────────────
+fx_candle() {
+    fx_stop; init_state
+    local speed="${1:-5}" delay
+    delay=$(speed_to_delay 80 "$speed")
+
+    (
+        set +e
+        trap 'exit 0' TERM INT
+        while :; do
+            r=$(( 200 + RANDOM % 55 ))    # warm red
+            g=$(( 80 + RANDOM % 60 ))     # muted green
+            b=$(( RANDOM % 25 ))          # near-zero blue
+            hw_set_color "$(printf '%02X%02X%02X' "$r" "$g" "$b")"
+            hw_set_brightness $(( 35 + RANDOM % 65 ))
+            sleep "$delay"
+        done
+    ) &
+    fx_register candle $!
+    info "Candle speed=$speed (PID $!)"
+}
+
+# ── Effect: Pulse (one-shot) ────────────────────────────────
+fx_pulse() {
+    fx_stop
+    local color="${1:-${GRV[red]}}" speed="${2:-5}"
+    color="${color//#/}"
+    local delay
+    delay=$(speed_to_delay 30 "$speed")
+
+    hw_set_color "$color"
+    for (( b = 0; b <= 100; b += 5 ));  do hw_set_brightness "$b"; sleep "$delay"; done
+    sleep 0.2
+    for (( b = 100; b >= 0; b -= 5 )); do hw_set_brightness "$b"; sleep "$delay"; done
+    info "Pulse #$color done"
+}
+
+# ── Effect: Police ───────────────────────────────────────────
+fx_police() {
+    fx_stop; init_state
+    local speed="${1:-5}" fd pd
+    fd=$(speed_to_delay 60 "$speed")
+    pd=$(speed_to_delay 30 "$speed")
+    hw_set_brightness 100
+
+    (
+        set +e
+        trap 'exit 0' TERM INT
+        while :; do
+            hw_set_color "FF0000"
+            hw_set_brightness 100; sleep "$fd"; hw_set_brightness 0; sleep "$pd"
+            hw_set_brightness 100; sleep "$fd"; hw_set_brightness 0; sleep "$pd"
+            hw_set_color "0000FF"
+            hw_set_brightness 100; sleep "$fd"; hw_set_brightness 0; sleep "$pd"
+            hw_set_brightness 100; sleep "$fd"; hw_set_brightness 0; sleep "$pd"
+        done
+    ) &
+    fx_register police $!
+    info "Police speed=$speed (PID $!)"
+}
+
+# ── Effect: Disco ────────────────────────────────────────────
+fx_disco() {
+    fx_stop; init_state
+    local speed="${1:-5}" delay
+    delay=$(speed_to_delay 120 "$speed")
+    hw_set_brightness 100
+
+    (
+        set +e
+        trap 'exit 0' TERM INT
+        while :; do
+            hw_set_color "$(printf '%02X%02X%02X' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))"
+            sleep "$delay"
+        done
+    ) &
+    fx_register disco $!
+    info "Disco speed=$speed (PID $!)"
+}
+
+# ── Effect: Heartbeat ────────────────────────────────────────
+fx_heartbeat() {
+    fx_stop; init_state
+    local color="${1:-${GRV[red]}}" speed="${2:-5}"
+    color="${color//#/}"
+    local bd pd
+    bd=$(speed_to_delay 25 "$speed")
+    pd=$(speed_to_delay 400 "$speed")
+    hw_set_color "$color"
+
+    (
+        set +e
+        trap 'exit 0' TERM INT
+        while :; do
+            # Lub (strong)
+            for (( b = 0;   b <= 100; b += 10 )); do hw_set_brightness "$b"; sleep "$bd"; done
+            for (( b = 100; b >= 20;  b -= 10 )); do hw_set_brightness "$b"; sleep "$bd"; done
+            sleep 0.08
+            # Dub (softer)
+            for (( b = 20; b <= 80; b += 10 )); do hw_set_brightness "$b"; sleep "$bd"; done
+            for (( b = 80; b >= 0;  b -= 10 )); do hw_set_brightness "$b"; sleep "$bd"; done
+            sleep "$pd"
+        done
+    ) &
+    fx_register heartbeat $!
+    info "Heartbeat #$color speed=$speed (PID $!)"
+}
+
+# ══════════════════════════════════════════════════════════════
+# ── NOTIFICATION GLOW (dunst integration) ─────────────────────
+# ══════════════════════════════════════════════════════════════
+# Called via dunst script rule → wrapper → sudo kb-rgb glow-flash
+# No daemon — dunst is the event source.
+
+glow_is_on() {
+    [[ -f "$GLOW_TOGGLE" ]] && [[ "$(< "$GLOW_TOGGLE")" == "1" ]]
+}
+
+glow_toggle() {
+    init_state
+    if glow_is_on; then
+        printf '0' > "$GLOW_TOGGLE"
+        info "Notification glow: OFF"
+    else
+        printf '1' > "$GLOW_TOGGLE"
+        info "Notification glow: ON"
+    fi
+}
+
+glow_flash() {
+    glow_is_on || return 0
+    acquire_lock
+
+    local urgency="${1:-normal}"
+    local had_effect="" effect_pid=""
+
+    # Pause running effect (SIGSTOP) so we flash cleanly
+    if [[ -f "$EFFECT_PID" ]]; then
+        effect_pid=$(< "$EFFECT_PID")
+        if kill -0 "$effect_pid" 2>/dev/null; then
+            had_effect=1
+            # Stop process tree
+            local child
+            for child in $(pgrep -P "$effect_pid" 2>/dev/null); do
+                kill -STOP "$child" 2>/dev/null
+            done
+            kill -STOP "$effect_pid" 2>/dev/null
+        fi
+    fi
+
+    # Flash — timings tuned for EC settle time (~35ms per write)
+    # Total duration: low ~800ms, normal ~900ms, critical ~750ms
+    case "$urgency" in
+        low)
+            # Smooth aqua fade-up, hold, fade-down
+            hw_set_color "${GRV[aqua]}"
+            hw_set_brightness 20; sleep 0.06
+            hw_set_brightness 40; sleep 0.06
+            hw_set_brightness 60; sleep 0.08
+            hw_set_brightness 75; sleep 0.15
+            hw_set_brightness 60; sleep 0.08
+            hw_set_brightness 40; sleep 0.06
+            hw_set_brightness 20; sleep 0.06
+            ;;
+        critical)
+            # Aggressive red double-flash with holds
+            local _f
+            for _f in 1 2; do
+                hw_set_color "${GRV[red]}"
+                hw_set_brightness 100; sleep 0.12
+                hw_set_brightness 0;   sleep 0.10
+            done
+            # Third flash: longer hold
+            hw_set_brightness 100; sleep 0.18
+            hw_set_brightness 0;   sleep 0.05
+            ;;
+        *)  # normal
+            # Warm orange pulse up → yellow peak → fade out
+            hw_set_color "${GRV[yellow]}"
+            hw_set_brightness 30; sleep 0.06
+            hw_set_brightness 60; sleep 0.06
+            hw_set_color "${GRV[orange]}"
+            hw_set_brightness 85; sleep 0.15
+            hw_set_brightness 60; sleep 0.08
+            hw_set_brightness 35; sleep 0.06
+            hw_set_brightness 15; sleep 0.06
+            ;;
+    esac
+
+    # Restore: resume effect OR restore static state
+    if [[ -n "$had_effect" ]]; then
+        local child
+        for child in $(pgrep -P "$effect_pid" 2>/dev/null); do
+            kill -CONT "$child" 2>/dev/null
+        done
+        kill -CONT "$effect_pid" 2>/dev/null
+    elif [[ -f "$STATE_FILE" ]]; then
+        local old_color old_bright
+        { read -r old_color; read -r old_bright; } < "$STATE_FILE"
+        if [[ -n "$old_color" && -n "$old_bright" && "$old_bright" != "0" ]]; then
+            hw_set_color "$old_color"
+            hw_set_brightness "$old_bright"
         else
-            die "zenity not installed — can't pick custom color"
+            hw_set_brightness 0
         fi
     else
-        apply_preset "$choice"
+        hw_set_brightness 0
     fi
+}
+
+glow_test() {
+    init_state
+    # Temporarily force on
+    local was_on=0
+    glow_is_on && was_on=1
+    printf '1' > "$GLOW_TOGGLE"
+
+    info "Testing glow patterns..."
+    info "  low (aqua)...";      glow_flash low;      sleep 0.8
+    info "  normal (orange)..."; glow_flash normal;    sleep 0.8
+    info "  critical (red)...";  glow_flash critical;  sleep 0.5
+
+    (( was_on )) || printf '0' > "$GLOW_TOGGLE"
+    info "Glow test done"
+}
+
+# ── Fade (one-shot) ──────────────────────────────────────────
+do_fade() {
+    local from="${1//#/}" to="${2//#/}" steps="${3:-20}"
+    local delay
+    delay=$(speed_to_delay 60 5)
+    fade_colors "$from" "$to" "$steps" "$delay"
+    apply "$to"
 }
 
 # ── Status ───────────────────────────────────────────────────
 show_status() {
-    state=$(load_state)
-    color=$(printf '%s' "$state" | cut -d' ' -f1)
-    bright=$(printf '%s' "$state" | cut -d' ' -f2)
-    printf 'Color:      #%s\nBrightness: %s%%\n' "$color" "$bright"
+    local color bright glow effect
+    color=$(get_color)
+    bright=$(get_bright)
+    glow="OFF"; glow_is_on && glow="ON"
+    effect=$(fx_current)
+    printf 'Color:       #%s\nBrightness:  %s%%\nNotif Glow:  %s\nEffect:      %s\n' \
+        "$color" "$bright" "$glow" "$effect"
 }
 
-# ── Main ─────────────────────────────────────────────────────
-[ -w "$ACPI_CALL" ] || {
-    # Try sudo silently
-    if [ "$(id -u)" -ne 0 ]; then
-        exec sudo "$0" "$@"
-    fi
+# ══════════════════════════════════════════════════════════════
+# ── SUDO ESCALATION ──────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+[[ -w "$ACPI_CALL" ]] || {
+    (( EUID != 0 )) && exec sudo "$0" "$@"
 }
 
-case "${1:-}" in
+# ── Initialize state directory ───────────────────────────────
+init_state
+
+# ══════════════════════════════════════════════════════════════
+# ── COMMAND DISPATCH ──────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+cmd="${1:-help}"; shift 2>/dev/null || true
+
+case "$cmd" in
+    # ── Colors ──
     color|c)
-        shift
-        if [ $# -eq 1 ]; then
-            hex=$(printf '%s' "$1" | tr -d '#')
-            set_all_zones "$hex"
-            set_brightness 100
-            save_state "$hex" 100
-        elif [ $# -eq 3 ]; then
-            hex=$(printf '%02X%02X%02X' "$1" "$2" "$3")
-            set_all_zones "$hex"
-            set_brightness 100
-            save_state "$hex" 100
+        if [[ $# -eq 1 ]]; then
+            apply "${1//#/}"
+        elif [[ $# -eq 3 ]]; then
+            apply "$(printf '%02X%02X%02X' "$1" "$2" "$3")"
         else
-            die "Usage: kb-rgb color RRGGBB  or  kb-rgb color R G B"
-        fi
-        ;;
-    zone|z)
-        shift
-        [ $# -ge 2 ] || die "Usage: kb-rgb zone 0|1|2 RRGGBB"
-        zone="$1"; hex=$(printf '%s' "$2" | tr -d '#')
-        brg=$(rgb_to_brg "$hex")
-        set_zone "$zone" "$brg"
-        ;;
+            die "Usage: kb-rgb color RRGGBB | kb-rgb color R G B"
+        fi ;;
+    preset|p)    apply_preset "${1:?Usage: kb-rgb preset NAME}" ;;
+    presets|list) list_presets ;;
+    cycle)       do_cycle ;;
+    pick)        do_pick ;;
+
+    # ── Brightness & power ──
     brightness|b|bright)
-        shift
-        set_brightness "${1:?Usage: kb-rgb brightness 0-100}"
-        state=$(load_state)
-        color=$(printf '%s' "$state" | cut -d' ' -f1)
-        save_state "$color" "$1"
-        ;;
-    off|0)
-        set_brightness 0
-        ;;
+        hw_set_brightness "${1:?Usage: kb-rgb brightness 0-100}"
+        save_state "$(get_color)" "$1" ;;
+    off|0)       fx_stop 2>/dev/null; hw_set_brightness 0 ;;
     on|1)
-        state=$(load_state)
-        color=$(printf '%s' "$state" | cut -d' ' -f1)
-        bright=$(printf '%s' "$state" | cut -d' ' -f2)
-        [ -z "$color" ] && color="FFFFFF"
-        [ -z "$bright" ] || [ "$bright" = "0" ] && bright=100
-        set_all_zones "$color"
-        set_brightness "$bright"
-        ;;
-    cycle)
-        do_cycle
-        ;;
-    preset|p)
-        shift
-        apply_preset "${1:?Usage: kb-rgb preset NAME}"
-        ;;
-    pick)
-        do_pick
-        ;;
-    status|s)
-        show_status
-        ;;
+        _state=$(load_state)
+        _color=$(cut -d' ' -f1 <<< "$_state")
+        _bright=$(cut -d' ' -f2 <<< "$_state")
+        [[ -z "$_color" ]] && _color="${GRV[fg]}"
+        [[ -z "$_bright" || "$_bright" == "0" ]] && _bright=100
+        apply "$_color" "$_bright" ;;
+
+    # ── Effects ──
+    breathe)     fx_breathe "${1:-}" "${2:-5}" ;;
+    wave)        [[ $# -ge 2 ]] || die "Usage: kb-rgb wave C1 C2 [speed]"
+                 fx_wave "$1" "$2" "${3:-5}" ;;
+    strobe)      fx_strobe "${1:-FFFFFF}" "${2:-5}" ;;
+    candle)      fx_candle "${1:-5}" ;;
+    pulse)       fx_pulse "${1:-${GRV[red]}}" "${2:-5}" ;;
+    police)      fx_police "${1:-5}" ;;
+    disco)       fx_disco "${1:-5}" ;;
+    heartbeat|hb) fx_heartbeat "${1:-${GRV[red]}}" "${2:-5}" ;;
+    fade)        [[ $# -ge 2 ]] || die "Usage: kb-rgb fade HEX1 HEX2 [steps]"
+                 do_fade "$1" "$2" "${3:-20}" ;;
+    stop|fx-stop) fx_stop; info "Effect stopped" ;;
+
+    # ── Notification glow ──
+    glow-toggle|gt) glow_toggle ;;
+    glow-flash|gf)  glow_flash "${1:-normal}" ;;
+    glow-test)      glow_test ;;
+
+    # ── Info ──
+    status|s) show_status ;;
     help|--help|-h)
-        cat <<'EOF'
+        cat <<'HELP'
 kb-rgb — COLORFUL P15 23 Keyboard RGB Controller
 
-USAGE:
-  kb-rgb color RRGGBB         Set all zones to hex color
-  kb-rgb color R G B           Set all zones (decimal 0-255)
-  kb-rgb zone 0|1|2 RRGGBB    Set single zone (0=left 1=center 2=right)
-  kb-rgb brightness 0-100      Set brightness
-  kb-rgb off                   Turn off backlight
-  kb-rgb on                    Restore last color/brightness
-  kb-rgb cycle                 Cycle through preset colors
-  kb-rgb preset NAME           Apply preset (red green blue white cyan
-                                magenta yellow orange purple pink warm
-                                ice rainbow flag)
-  kb-rgb pick                  Interactive color picker (rofi/dmenu)
-  kb-rgb status                Show current state
-  kb-rgb help                  This help
-EOF
+COLORS:
+  kb-rgb color RRGGBB           Set hex color
+  kb-rgb color R G B            Set decimal (0-255 each)
+  kb-rgb preset NAME            Named preset (see: kb-rgb presets)
+  kb-rgb presets                List all presets
+  kb-rgb pick                   Interactive rofi/dmenu picker
+  kb-rgb cycle                  Cycle through colors
+
+BRIGHTNESS & POWER:
+  kb-rgb brightness 0-100       Set brightness
+  kb-rgb off                    Backlight off
+  kb-rgb on                     Restore last state
+
+EFFECTS (all accept optional speed 1–10, default 5):
+  kb-rgb breathe [COLOR] [SPD]  Breathing pulse
+  kb-rgb wave C1 C2 [SPD]       Fade between 2 colors
+  kb-rgb strobe [COLOR] [SPD]   Rapid on/off flash
+  kb-rgb candle [SPD]           Warm flickering flame
+  kb-rgb pulse [COLOR] [SPD]    Single throb (one-shot)
+  kb-rgb police [SPD]           Alternating red/blue
+  kb-rgb disco [SPD]            Random color party
+  kb-rgb heartbeat [CLR] [SPD]  Lub-dub double pulse
+  kb-rgb fade HEX1 HEX2 [N]    One-shot color fade
+  kb-rgb stop                   Stop running effect
+
+NOTIFICATIONS (via dunst):
+  kb-rgb glow-toggle            Toggle notification flash
+  kb-rgb glow-flash URGENCY     Flash (low|normal|critical)
+  kb-rgb glow-test              Demo all urgency patterns
+
+INFO:
+  kb-rgb status                 Current state + effect
+HELP
         ;;
-    *)
-        die "Unknown command: ${1:-}. Run 'kb-rgb help' for usage."
-        ;;
+    *) die "Unknown: $cmd — run 'kb-rgb help'" ;;
 esac

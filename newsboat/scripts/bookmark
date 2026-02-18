@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+#  Newsboat Bookmark Script
+#  Called by newsboat via: bookmark-cmd
+#  Arguments: $1=URL  $2=Title  $3=Description  $4=Feed Title
+#  XDG Path: ~/.config/newsboat/scripts/bookmark
+# -----------------------------------------------------------------------------
+
+set -euo pipefail
+
+BOOKMARK_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/newsboat"
+BOOKMARK_FILE="$BOOKMARK_DIR/bookmarks.txt"
+
+# Ensure directory exists
+mkdir -p "$BOOKMARK_DIR"
+
+# Arguments from newsboat
+URL="${1:-}"
+TITLE="${2:-No Title}"
+DESCRIPTION="${3:-}"
+FEED_TITLE="${4:-}"
+TIMESTAMP="$(date '+%Y-%m-%d %H:%M')"
+
+# Validate URL
+if [[ -z "$URL" ]]; then
+    echo "Error: No URL provided"
+    exit 1
+fi
+
+# Check for duplicates
+if [[ -f "$BOOKMARK_FILE" ]] && grep -qF "$URL" "$BOOKMARK_FILE"; then
+    echo "Already bookmarked: $URL"
+    exit 0
+fi
+
+# Append bookmark (tab-separated for easy parsing)
+printf '%s\t%s\t%s\t%s\t%s\n' \
+    "$TIMESTAMP" "$TITLE" "$URL" "$FEED_TITLE" "$DESCRIPTION" \
+    >> "$BOOKMARK_FILE"
+
+# Optional: send notification
+if command -v dunstify &>/dev/null; then
+    dunstify \
+        --appname="Newsboat" \
+        --icon="bookmark-new" \
+        --urgency="low" \
+        --timeout=3000 \
+        "Bookmarked" \
+        "$TITLE"
+fi

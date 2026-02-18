@@ -1,0 +1,16 @@
+#!/bin/bash
+# Description: Extracts audio stream from YouTube URL and adds to MPD
+
+URL="$1"
+
+# 1. Get the true audio stream URL (best quality audio only)
+STREAM_URL=$(yt-dlp -f bestaudio --get-url "$URL")
+
+# 2. Add to MPD and play
+if [ -n "$STREAM_URL" ]; then
+    mpc add "$STREAM_URL"
+    mpc play
+    notify-send "MPD" "Added: $URL"
+else
+    notify-send "MPD Error" "Could not extract stream from $URL"
+fi

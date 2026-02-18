@@ -63,6 +63,13 @@
                        [   "sh", "-c", 
                            "command -v picard >/dev/null 2>&1 && picard -s \"${XDG_MUSIC_DIR:-$HOME/Music}/$(echo $SELECTED_SONGS | head -n 1)\" 2>&1 >/dev/null || notify-send -a rmpc 'Error' 'Picard not installed'"
                        ], description: "Open in picard"),
+            "D": ExternalCommand(
+                         command: [
+                         "sh", "-c", 
+                            "music_dir=\"${XDG_MUSIC_DIR:-$HOME/Music}\"; echo \"$SELECTED_SONGS\" | while read -r song; do rm -v \"$music_dir/$song\"; done && mpc update && notify-send -a rmpc 'Deleted' 'Selected tracks removed from disk'"
+                        ], 
+    description: "Permanently delete selected songs"
+),
         },
         navigation: {
             "<S-Up>":      PaneUp,
@@ -89,12 +96,12 @@
             "<Esc>":       Close,
             "K":           MoveUp,
             "l":           Right,
-            "D":           Delete,
+            // "D":           Delete,
             "k":           Up,
             "B":           ShowInfo,
         },
         queue: {
-            "D":           DeleteAll,
+            // "D":           DeleteAll,
             "<CR>":        Play,
             "<C-s>":       Save,
             "a":           AddToPlaylist,
@@ -127,11 +134,7 @@
                             direction: Vertical,
                             panes: [
                                 (
-                                    size: "100%",
-                                    pane: Pane(Lyrics)
-                                ),
-                                (
-                                    size: "0.409090909r",
+                                    size: "1",
                                     pane: Pane(AlbumArt),
                                 ),
                             ],

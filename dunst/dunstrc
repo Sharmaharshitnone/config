@@ -9,7 +9,7 @@
     #   <u>underline</u>
     #
     #   <a href="URL">URL</a>
-    markup = yes
+    markup = full
 
     # The format of the message.  Possible variables:
     #   %a  appname
@@ -136,3 +136,11 @@
     foreground = "#d4d4d4"
     frame_color = "#cc6666"
     timeout = 0
+
+# ── Keyboard RGB glow on notifications ──
+# Wrapper script receives urgency as $5 from dunst.
+# Toggle with: kb-rgb glow-toggle
+# Requires: /etc/sudoers.d/kb-rgb for NOPASSWD
+
+[kb-glow]
+    script = /home/kali/work/config/dunst/scripts/kb-rgb-glow

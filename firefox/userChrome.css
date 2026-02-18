@@ -1,7 +1,10 @@
 /* ─── Pure Dark Monochrome Firefox Theme ──────────────────── */
-/* Transparent/dark chrome, auto-hide toolbar, overlay sidebar */
+/* Zero-chrome: auto-hide toolbar, overlay sidebar, fullscreen-clean */
+/* requires toolkit.legacyUserProfileCustomizations.stylesheets = true */
 
 /* --- STRICT FOCUS-ONLY MODE --- */
+/* Toolbar is invisible. Ctrl+L reveals it as a floating overlay.       */
+/* This is the single biggest productivity win: 100% screen = content.  */
 
 :root {
   --uc-hide-amount: -40px;
@@ -24,10 +27,45 @@
   opacity: 1;
 }
 
-/* Hide tabs when searching */
+/* Hide tabs when toolbar is active — URL bar is all you need */
 #navigator-toolbox:focus-within #TabsToolbar {
     display: none !important;
 }
+
+/* --- COMPACT CHROME (when toolbar IS visible) --- */
+/* Minimal footprint: smaller tabs, no URL bar clutter */
+
+#TabsToolbar .tabbrowser-arrowscrollbox,
+#tabbrowser-tabs, .tab-stack {
+    min-height: 28px !important;
+}
+
+.tabbrowser-tab {
+    font-size: 80%;
+}
+
+.tab-content {
+    padding: 0 5px;
+}
+
+.tab-close-button .toolbarbutton-icon {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+/* Remove "Search with..." one-off buttons from URL suggestions */
+.search-one-offs { display: none !important; }
+
+/* Remove tab top border artifact */
+.tab-background { border-top: none !important; }
+
+/* Remove bottom border on toolbox */
+#navigator-toolbox::after { border: none; }
+
+/* --- FULLSCREEN --- */
+/* F11 fullscreen: hide ALL chrome — pure immersion */
+
+toolbox[inFullscreen=true] { display: none; }
 
 /* --- STATIC OVERLAY SIDEBAR (Keyboard Only) --- */
 

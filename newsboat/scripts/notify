@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+#  Newsboat Notification Script — Dunst Integration
+#  Called by newsboat via: notify-program
+#  Receives the formatted notification string as $1
+#  XDG Path: ~/.config/newsboat/scripts/notify
+# -----------------------------------------------------------------------------
+
+set -euo pipefail
+
+MESSAGE="${1:-No new articles}"
+
+# Only notify if there's actual content
+[[ -z "$MESSAGE" ]] && exit 0
+
+# Use dunstify for actionable notifications (supports replace-id)
+# Falls back to notify-send if dunstify is unavailable
+if command -v dunstify &>/dev/null; then
+    dunstify \
+        --appname="Newsboat" \
+        --icon="applications-rss+xml" \
+        --urgency="low" \
+        --timeout=5000 \
+        --replace=91919 \
+        "RSS" \
+        "$MESSAGE"
+elif command -v notify-send &>/dev/null; then
+    notify-send \
+        --app-name="Newsboat" \
+        --icon="applications-rss+xml" \
+        --urgency="low" \
+        --expire-time=5000 \
+        "RSS" \
+        "$MESSAGE"
+fi

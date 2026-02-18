@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════════
+# warp — Cloudflare WARP toggle with immutable DNS protection
+#
+# Security: root-owned (0755), sudoers NOPASSWD entry
+#           Only root can modify; any user can execute.
+#
+# Usage:  warp            Toggle WARP on/off
+#         warp status     Show connection status
+#
+# Deps:   warp-cli, systemd, curl (for verification)
+# ══════════════════════════════════════════════════════════════
+set -euo pipefail
+
+# ── Configuration ────────────────────────────────────────────
+readonly CLEARNET_DNS='# Custom DNS configuration
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+nameserver 1.1.1.1'
+
+# Stop warp-svc on disconnect to reclaim ~30MB RAM.
+# Set to false for instant reconnects at the cost of idle RAM.
+readonly STOP_SERVICE_ON_DISCONNECT=true
+
+readonly RESOLV="/etc/resolv.conf"
+
+# ── Helpers ──────────────────────────────────────────────────
+die()  { printf 'warp: %s\n' "$*" >&2; exit 1; }
+info() { printf '%s\n' "$*"; }
+
+# ── Sudo self-escalation ────────────────────────────────────
+# chattr and systemctl need root. Re-exec under sudo if needed.
+# PORTABILITY: resolve the canonical path before passing to sudo.
+# $0 may be a symlink (e.g. ~/.local/bin/warp) which would NOT match
+# the NOPASSWD path in /etc/sudoers.d/warp. realpath resolves it.
+if (( EUID != 0 )); then
+    _SELF=$(realpath "${BASH_SOURCE[0]}")
+    exec sudo "$_SELF" "$@"
+fi
+
+# ── DNS lock / unlock helpers ────────────────────────────────
+dns_lock()   { chattr +i "$RESOLV" 2>/dev/null || true; }
+dns_unlock() { chattr -i "$RESOLV" 2>/dev/null || true; }
+dns_is_locked() { lsattr "$RESOLV" 2>/dev/null | grep -q -- '----i'; }
+
+# ── Status command ───────────────────────────────────────────
+cmd_status() {
+    if ! systemctl is-active --quiet warp-svc; then
+        info "Service: stopped"
+        return 0
+    fi
+    warp-cli status 2>/dev/null || info "[!] Daemon running but CLI unresponsive"
+}
+
+# ── Ensure daemon is running ─────────────────────────────────
+ensure_daemon() {
+    if systemctl is-active --quiet warp-svc; then
+        return 0
+    fi
+
+    info ":: Starting WARP daemon..."
+    systemctl start warp-svc || die "Failed to start. Check: systemctl status warp-svc"
+
+    # Wait for CLI socket (up to 2s)
+    local i=0
+    while (( i++ < 20 )); do
+        warp-cli status &>/dev/null && return 0
+        sleep 0.1
+    done
+    die "Daemon unresponsive after 2s"
+}
+
+# ── Detect connection state ──────────────────────────────────
+detect_state() {
+    local output
+    output=$(timeout 5 warp-cli status 2>/dev/null) ||
+        die "warp-cli timed out after 5s"
+
+    awk '
+        /Status/ && /Connected/    { print "connected";    exit }
+        /Status/ && /Disconnected/ { print "disconnected"; exit }
+        /Status/ && /Connecting/   { print "connecting";   exit }
+    ' <<< "$output"
+}
+
+# ── Disconnect ───────────────────────────────────────────────
+do_disconnect() {
+    info "[-] Disconnecting..."
+    warp-cli disconnect
+
+    # Wait for WARP DNS cleanup (critical timing)
+    sleep 1
+
+    info ":: Restoring custom DNS (atomic)..."
+    dns_unlock
+    printf '%s' "$CLEARNET_DNS" > "$RESOLV"
+    dns_lock
+
+    if [[ "$STOP_SERVICE_ON_DISCONNECT" == "true" ]]; then
+        if systemctl is-active --quiet warp-svc; then
+            info ":: Stopping warp-svc to save RAM..."
+            systemctl stop warp-svc || info "[!] Failed to stop warp-svc" >&2
+            sleep 0.1
+        fi
+    fi
+
+    info "[OFF] CLEARNET | DNS: 8.8.8.8 (Locked)"
+}
+
+# ── Connect ──────────────────────────────────────────────────
+do_connect() {
+    # Unlock DNS so WARP can manage it
+    if dns_is_locked; then
+        info ":: Unlocking DNS for WARP..."
+        dns_unlock
+    fi
+
+    info "[+] Establishing tunnel..."
+    warp-cli connect || {
+        warp-cli status >&2
+        die "Connection failed"
+    }
+
+    # Verify tunnel (wait for handshake)
+    sleep 1.5
+    local trace
+    trace=$(timeout 3 curl -sf https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null) || true
+
+    if [[ -z "$trace" ]]; then
+        info "[!] No response (check captive portal)" >&2
+        return 1
+    fi
+
+    if grep -q 'warp=on' <<< "$trace"; then
+        local exit_ip colo
+        exit_ip=$(awk -F= '/^ip=/  { print $2 }' <<< "$trace")
+        colo=$(awk -F= '/^colo=/ { print $2 }' <<< "$trace")
+        info "[OK] SECURED | ${exit_ip} via ${colo}"
+    else
+        info "[WARN] Tunnel established but traffic not routed" >&2
+    fi
+}
+
+# ── Toggle (main action) ────────────────────────────────────
+cmd_toggle() {
+    # Safety: always unlock DNS on interrupt
+    trap 'dns_unlock; trap - INT TERM EXIT' INT TERM EXIT
+
+    ensure_daemon
+
+    local state
+    state=$(detect_state)
+
+    case "$state" in
+        connected)              do_disconnect ;;
+        disconnected|connecting) do_connect ;;
+        *)
+            info "[?] Unknown state. Raw:" >&2
+            warp-cli status >&2
+            trap - INT TERM EXIT
+            exit 1
+            ;;
+    esac
+
+    trap - INT TERM EXIT
+}
+
+# ══════════════════════════════════════════════════════════════
+# ── DISPATCH ──────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+cmd="${1:-toggle}"; shift 2>/dev/null || true
+
+case "$cmd" in
+    toggle|t)       cmd_toggle ;;
+    status|s|stat)  cmd_status ;;
+    help|--help|-h)
+        cat <<'HELP'
+warp — Cloudflare WARP toggle
+
+Usage:
+  warp              Toggle WARP on/off
+  warp status       Show connection status
+  warp help         This message
+
+Security:
+  Root-owned script (0755). Sudo NOPASSWD via /etc/sudoers.d/warp.
+  DNS is locked immutable when WARP is off to prevent leaks.
+HELP
+        ;;
+    *) die "Unknown command: $cmd — try 'warp help'" ;;
+esac

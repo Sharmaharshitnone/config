@@ -1,0 +1,93 @@
+# -----------------------------------------------------------------------------
+#  Newsboat URL Subscriptions — Curated Feed List
+#  Maintainer: kali
+#  XDG Path:   ~/.config/newsboat/urls
+#
+#  Format:  <url> <tag1> <tag2> "~Custom Title"
+#  Tags:    linux, programming, security, tech, selfhost, foss, ml, growth
+#  Hidden:  prefix tag with ! to hide from feedlist (used by query feeds)
+#  Docs:    https://newsboat.org/releases/2.42/docs/newsboat.html#_adding_feeds
+# -----------------------------------------------------------------------------
+
+# ── Query Feeds (aggregated meta-feeds) ──────────────────────────────────────
+
+"query:--- ALL UNREAD ---:unread = \"yes\""
+"query:--- TODAY ---:age between 0:1"
+"query:--- THIS WEEK ---:age between 0:7"
+"query:--- Security ---:tags # \"security\""
+"query:--- Programming ---:tags # \"programming\""
+"query:--- Linux ---:tags # \"linux\""
+"query:--- Machine Learning ---:tags # \"ml\""
+
+# ── Linux / Arch ─────────────────────────────────────────────────────────────
+# High-signal Linux news — Arch official, kernel-level, hardware benchmarks
+
+https://archlinux.org/feeds/news/                     linux "~Arch Linux News"
+https://lwn.net/headlines/newrss                       linux "~LWN.net Headlines"
+https://www.phoronix.com/rss.php                       linux tech "~Phoronix"
+
+# ── Programming (C++, Rust, Systems) ─────────────────────────────────────────
+# Language-specific blogs and weekly digests for CP + systems programming
+
+https://blog.rust-lang.org/feed.xml                    programming "~Rust Blog (Official)"
+https://this-week-in-rust.org/atom.xml                 programming "~This Week in Rust"
+https://isocpp.org/blog/rss/category/news              programming "~ISO C++ News"
+https://andrewkelley.me/rss.xml                        programming "~Andrew Kelley (Zig)"
+
+# ── Cybersecurity / Hacking ──────────────────────────────────────────────────
+# Threat intel, exploit research, and security analysis — essential for CTF/pentest
+
+https://krebsonsecurity.com/feed/                      security "~Krebs on Security"
+https://feeds.feedburner.com/TheHackersNews             security "~The Hacker News"
+https://portswigger.net/daily-swig/rss                  security "~PortSwigger Daily Swig"
+https://www.schneier.com/feed/atom/                     security "~Schneier on Security"
+
+# ── Tech Industry / HN / Lobsters ────────────────────────────────────────────
+# Aggregator feeds — the pulse of tech, heavily curated by community voting
+
+https://lobste.rs/rss                                   tech programming "~Lobste.rs"
+https://hnrss.org/best                                  tech programming "~Hacker News Best"
+https://feeds.arstechnica.com/arstechnica/technology-lab tech "~Ars Technica"
+
+# ── Self-Hosting / Homelab ───────────────────────────────────────────────────
+# Selfhosted tools, Docker workflows, infrastructure
+
+https://selfh.st/rss/                                   selfhost "~selfh.st Newsletter"
+https://www.reddit.com/r/selfhosted/.rss                selfhost "~r/selfhosted"
+
+# ── Open Source / FOSS ───────────────────────────────────────────────────────
+# FOSS project news and community updates
+
+https://itsfoss.com/feed/                               foss linux "~It's FOSS"
+https://www.opensourceagenda.com/feed                   foss "~Open Source Agenda"
+
+# ── Machine Learning / AI ────────────────────────────────────────────────────
+# Research digests, practical ML, and industry trends
+
+https://newsletter.theaiedge.io/feed                    ml "~The AI Edge Newsletter"
+https://lilianweng.github.io/index.xml                  ml programming "~Lil'Log (Lilian Weng)"
+https://colah.github.io/rss.xml                         ml "~colah's blog"
+
+# ── Self-Improvement / Peak Performance ──────────────────────────────────────
+# Mental models, habits, strategy — becoming the absolute best version of yourself
+
+https://jamesclear.com/feed                             growth "~James Clear (Atomic Habits)"
+https://fs.blog/feed/                                   growth "~Farnam Street (Mental Models)"
+http://www.paulgraham.com/rss.html                      growth programming "~Paul Graham Essays"
+https://nav.al/feed                                     growth "~Naval Ravikant"
+
+# ── Meta ─────────────────────────────────────────────────────────────────────
+# Newsboat's own feed — stay updated on your RSS reader itself
+
+https://newsboat.org/news.atom                          foss "~Newsboat Releases"
+
+# ─ Youtube Channels (via RSS) ─────────────────────────────────────────────────
+
+https://www.youtube.com/feeds/videos.xml?channel_id=UCUyeluBRhGPCW4rPe_UvBZQ  ~ThePrimeTime
+https://www.youtube.com/feeds/videos.xml?channel_id=UC_iD0xppBwwsrM9DegC5cQQ  ~"jonhoo
+https://www.youtube.com/feeds/videos.xml?channel_id=UCUMwY9iS8oMyWDYIe6_RmoA  ~NoBoilerplate
+https://www.youtube.com/feeds/videos.xml?channel_id=UCMlGfpWw-RUdWX_JbLCukXg  ~CppCon 
+https://www.youtube.com/feeds/videos.xml?channel_id=UCxHAlbZQNFU2LgEtiqd2Maw  ~cppWeekly
+https://www.youtube.com/feeds/videos.xml?channel_id=UCzYLos4qc2oC4r0Efd-tSuw  ~Rustaceanstation
+
+

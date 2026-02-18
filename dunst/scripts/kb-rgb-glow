@@ -1,0 +1,13 @@
+#!/bin/sh
+# kb-rgb-glow — dunst notification hook for keyboard RGB glow
+# Called by dunst as: script appname summary body icon urgency
+# Dunst 1.10+ also sets DUNST_URGENCY env var.
+# See dunstrc [kb-glow] rule
+
+# Early exit if glow is disabled (avoids unnecessary sudo fork)
+TOGGLE="${XDG_STATE_HOME:-$HOME/.local/state}/kb-rgb/glow_enabled"
+[ -f "$TOGGLE" ] && [ "$(cat "$TOGGLE")" = "1" ] || exit 0
+
+# Prefer env var (modern dunst), fall back to positional arg
+URGENCY="${DUNST_URGENCY:-${5:-normal}}"
+exec sudo /home/kali/work/config/bin/kb-rgb glow-flash "$URGENCY"

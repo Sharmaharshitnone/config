@@ -24,7 +24,7 @@ alias mkcd='_mkcd() { mkdir -p "$1" && cd "$1"; }; _mkcd'
 alias upd='update_clean' # Uses the robust function below
 alias in='yay -S'
 alias rem='yay -Rns'
-alias orphan='yay -Rns $(yay -Qtdq)'
+alias orphan='yay -Qtdq | yay -Rns - 2>/dev/null || echo "No orphans found"'
 alias please='sudo $(fc -ln -1)' # Retry last command with sudo
 
 # --- 4. RUST & DEVELOPMENT ---
