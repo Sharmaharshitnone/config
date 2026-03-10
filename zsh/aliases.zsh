@@ -19,7 +19,7 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias mkcd='_mkcd() { mkdir -p "$1" && cd "$1"; }; _mkcd'
-
+alias cpfile='xclip -sel clip <'
 # --- 3. ARCH LINUX (YAY) ---
 alias upd='update_clean' # Uses the robust function below
 alias in='yay -S'

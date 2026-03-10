@@ -12,10 +12,21 @@ SESSION="$1"
 DIR="$2"
 CMD="$3"
 
+# Normalize directory input so quoted "~" from i3 configs still resolves correctly.
+if [[ "$DIR" == "~" ]]; then
+  DIR="$HOME"
+elif [[ "$DIR" == ~/* ]]; then
+  DIR="$HOME/${DIR#~/}"
+fi
+
 # 1. Ensure the session exists (detached) if it doesn't already.
 # Use -s to check only for the specific session name.
 if ! tmux has-session -t "$SESSION" 2>/dev/null; then
-  tmux new-session -d -s "$SESSION" -c "$DIR" "$CMD"
+  if [[ -n "$CMD" ]]; then
+    tmux new-session -d -s "$SESSION" -c "$DIR" "$CMD"
+  else
+    tmux new-session -d -s "$SESSION" -c "$DIR"
+  fi
 fi
 
 # 2. Check if the 'main-tmux' kitty window is running.

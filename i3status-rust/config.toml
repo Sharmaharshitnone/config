@@ -7,6 +7,7 @@ overrides = { idle_bg = "none", idle_fg = "#d4d4d4", info_bg = "none", info_fg =
 
 [icons]
 icons = "material-nf"
+# format = "<span size='large'>{icon}</span>"
 
 # 11b. DATE
 [[block]]
@@ -194,3 +195,26 @@ button = "left"
 cmd = "~/.config/i3/scripts/picom-toggle.sh && pkill -RTMIN+13 i3status-rs"
 
 
+# 12. WI-FI (Network)
+[[block]]
+block = "net"
+device = "^wlan" # Optional: restricts to wireless interfaces
+format = "$icon <span rise='1000'>$ssid ($signal_strength)</span>"
+format_alt = "$icon <span rise='1000'>$ip</span>"
+missing_format = "$icon <span rise='1000'>Disconnected</span>"
+interval = 5
+[[block.click]]
+button = "left"
+# Opens network manager in kitty. Change 'nmtui' to your preferred tool.
+cmd = "kitty -e nmtui" 
+
+# 13. BLUETOOTH
+[[block]]
+block = "bluetooth"
+mac = "random" # Automatically tracks the first connected device
+format = "$icon <span rise='1000'>$percentage</span>"
+disconnected_format = "$icon <span rise='1000'>Off</span>"
+[[block.click]]
+button = "left"
+# Opens bluetooth manager. Change 'bluetuith' to 'blueman-manager' or similar if needed.
+cmd = "kitty -e bluetui"

@@ -88,6 +88,8 @@ bind g  article  home                     -- "Go to top of article"
 bind n  feedlist,articlelist  next-unread  -- "Next unread article"
 bind p  feedlist,articlelist  prev-unread  -- "Previous unread article"
 
+bind O  articlelist,article  open-in-browser-noninteractively  -- "Open selected article in Firefox"
+
 bind D  articlelist  delete-article        -- "Delete article"
 bind U  feedlist     toggle-show-read-feeds -- "Toggle read feeds visibility"
 

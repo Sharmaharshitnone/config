@@ -13,7 +13,7 @@ exec --no-startup-id nm-applet
 exec --no-startup-id blueman-applet
 exec --no-startup-id dunst
 exec --no-startup-id sh -c 'DISPLAY=:0 clipmenud 2>/dev/null &'
-exec --no-startup-id udiskie --tray &
+# exec --no-startup-id udiskie --tray &
 exec --no-startup-id ~/.config/i3/scripts/start-polkit-agent.sh &
 exec --no-startup-id xwallpaper --zoom ~/Pictures/wallpapers/General/wallhaven-6llve6.png
 exec --no-startup-id ~/.config/i3/scripts/multi-monitor.sh &
@@ -29,8 +29,8 @@ for_window [all] title_window_icon on
 # ── Quick Navigation ──────────────────────────────────────────
 bindsym $mod+Tab workspace back_and_forth
 bindsym $mod+x [urgent=latest] focus
-bindsym $mod+minus scratchpad show
-bindsym $mod+Shift+minus move scratchpad
+# bindsym $mod+minus scratchpad show
+# bindsym $mod+Shift+minus move scratchpad
 # Rust: single daemon for alternating layouts + workspace naming
 exec_always --no-startup-id ~/.config/i3/scripts/i3-helper/target/release/i3-helper
 
@@ -49,12 +49,13 @@ set $tiling_mode      Tiling: [a]lternating [v]ertical [h]orizontal [s]plitv [d]
 include ~/.config/i3/config.d/*.conf
 
 # Power: $mod+Shift+Delete → confirm before shutdown
-set $power_mode  Power: [s]hutdown [r]eboot [l]ock [Esc]cancel
+set $power_mode  Power: [s]hutdown [r]eboot [l]ock [e]xit [Esc]cancel
 bindsym $mod+Shift+Delete mode "$power_mode"
 mode "$power_mode" {
     bindsym s exec --no-startup-id shutdown -h now; mode "default"
     bindsym r exec --no-startup-id reboot; mode "default"
     bindsym l exec --no-startup-id i3lock; mode "default"
+    bindsym e exec "pkill -TERM clipmenud; pkill -TERM picom; pkill -TERM xsel; sleep 0.2; i3-msg exit";
     bindsym Escape mode "default"
     bindsym Return mode "default"
 }
@@ -75,7 +76,7 @@ floating_modifier $mod
 tiling_drag modifier titlebar
 
 # start a terminal
-bindsym $mod+Return exec kitty
+bindsym $mod+Return exec --no-startup-id i3-tmux-launcher main "$HOME"
 bindsym $mod+Control+Return exec kitty tmux attach
 bindsym $mod+Shift+Return exec open-term-same-dir
 
@@ -155,7 +156,6 @@ bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 # exit i3 gracefully (logs you out of your X session and returns to ly)
 
-bindsym $mod+Shift+e exec "pkill -TERM clipmenud; pkill -TERM picom; pkill -TERM xsel; sleep 0.2; i3-msg exit"
 # resize window (you can also use the mouse for that)
 mode "resize" {
         bindsym h resize shrink width 10 px or 10 ppt

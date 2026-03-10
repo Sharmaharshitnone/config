@@ -65,6 +65,9 @@
 	<range>*</range>
 	<patterns>*</patterns>
 	<startup-notify/>
+	<directories/>
+	<other-files/>
+	<text-files/>
 </action>
 <action>
 	<icon></icon>
